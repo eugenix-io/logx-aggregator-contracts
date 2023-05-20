@@ -45,6 +45,7 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
     }
 
     event SetReferralCode(bytes32 referralCode);
+    event SetMaintainer(address maintainer, bool enable);
 
     function initialize(address weth_) external initializer {
         __Ownable_init();
@@ -55,21 +56,11 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         return _weth;
     }
 
-    // ======================== methods for contract management ========================
-    function upgradeTo(uint256 exchangeId, address newImplementation_) external onlyOwner {
-        _upgradeTo(exchangeId, newImplementation_);
-    }
+    // ======================== getter methods ========================
 
+    //ToDo - make this function only owner or only maintainer
     function getImplementationAddress(uint256 exchangeId) external view returns(address){
         return _implementations[exchangeId];
-    }
-
-    function setExchangeLiquidityPool(uint256 exchangeId, address liquidityPool) external onlyOwner{
-        _setExchangeLiquidityPool(exchangeId, liquidityPool);
-    }
-
-    function getExchangeLiquidityPool(uint256 exchangeId) external view returns(address){
-        return _getExchangeLiquidityPool(exchangeId);
     }
 
     function getProxyExchangeId(address proxy) external view returns(uint256){
@@ -80,6 +71,45 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         return _tradingProxies[proxyId];
     }
 
+    function getExchangeConfig(uint256 ExchangeId) external view returns (uint256[] memory) {
+        return _ExchangeConfigs[ExchangeId].values;
+    }
+
+    function getExchangeAssetConfig(uint256 ExchangeId, address assetToken) external view returns (uint256[] memory) {
+        return _ExchangeAssetConfigs[ExchangeId][assetToken].values;
+    }
+
+    // ======================== methods for contract management ========================
+    function upgradeTo(uint256 exchangeId, address newImplementation_) external onlyOwner {
+        _upgradeTo(exchangeId, newImplementation_);
+    }
+
+    function setExchangeConfig(uint256 ExchangeId, uint256[] memory values) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        _setExchangeConfig(ExchangeId, values);
+    }
+
+    function setExchangeAssetConfig(
+        uint256 ExchangeId,
+        address assetToken,
+        uint256[] memory values
+    ) external onlyOwner {
+        _setExchangeAssetConfig(ExchangeId, assetToken, values);
+    }
+
+    function getConfigVersions(uint256 ExchangeId, address assetToken)
+        external
+        view
+        returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion)
+    {
+        return _getLatestVersions(ExchangeId, assetToken);
+    }
+
+    function setMaintainer(address maintainer, bool enable) external onlyOwner {
+        _maintainers[maintainer] = enable;
+        emit SetMaintainer(maintainer, enable);
+    }
+
     // ======================== methods called by user ========================
     function createProxy(
         uint256 exchangeId,
@@ -88,11 +118,9 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         bool isLong
     ) public returns (address) {
         //ToDo - verify collateral and asset IDs before we create a proxy
-        address _liquidityPool = _getExchangeLiquidityPool(exchangeId);
         return
             _createBeaconProxy(
                 exchangeId,
-                _liquidityPool,
                 msg.sender,
                 assetToken,
                 collateralToken,

@@ -4,7 +4,6 @@ pragma solidity 0.8.19;
 interface IAggregator {
     function initialize(
         uint256 projectId,
-        address liquidityPool,
         address account,
         address assetToken,
         address collateralToken,
@@ -32,8 +31,6 @@ interface IAggregator {
     ) external payable;
 
     function liquidatePosition(uint256 liquidatePrice) external payable;
-
-    function withdraw() external;
 
     function cancelOrders(bytes32[] calldata keys) external;
 

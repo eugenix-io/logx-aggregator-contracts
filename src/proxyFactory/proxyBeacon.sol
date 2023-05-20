@@ -52,7 +52,6 @@ contract ProxyBeacon is  Storage, IBeacon{
 
     function _createBeaconProxy(
         uint256 exchangeId,
-        address liquidityPool,
         address account,
         address assetToken,
         address collateralToken,
@@ -62,9 +61,8 @@ contract ProxyBeacon is  Storage, IBeacon{
         bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, assetToken, isLong);
         require(_tradingProxies[proxyId] == address(0), "AlreadyCreated");
         bytes memory initData = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,address,bool)",
+            "initialize(uint256,address,address,address,bool)",
             exchangeId,
-            liquidityPool,
             account,
             collateralToken,
             assetToken,
