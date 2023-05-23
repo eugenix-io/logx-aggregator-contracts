@@ -42,13 +42,13 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
     }
 
     function initialize(
-        uint256 projectId,
+        uint256 exchangeId,
         address account,
         address collateralToken,
         address assetToken,
         bool isLong
     ) external initializer onlyDelegateCall {
-        require(projectId == PROJECT_ID, "InvalidProject");
+        require(exchangeId == EXCHANGE_ID, "Invalidexchange");
 
         _factory = msg.sender;
         _gmxPositionKey = keccak256(abi.encodePacked(address(this), collateralToken, assetToken, isLong));
@@ -60,24 +60,24 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         _updateConfigs();
     }
 
-    function muxAccountState() external view returns (AccountState memory) {
+    function accountState() external view returns (AccountState memory) {
         return _account;
     }
 
-    function getPendingGmxOrderKeys() external view returns (bytes32[] memory) {
+    function getPendingOrderKeys() external view returns (bytes32[] memory) {
         return _getPendingOrders();
     }
 
     function _tryApprovePlugins() internal {
-        IGmxRouter(_projectConfigs.router).approvePlugin(_projectConfigs.orderBook);
-        IGmxRouter(_projectConfigs.router).approvePlugin(_projectConfigs.positionRouter);
+        IGmxRouter(_exchangeConfigs.router).approvePlugin(_exchangeConfigs.orderBook);
+        IGmxRouter(_exchangeConfigs.router).approvePlugin(_exchangeConfigs.positionRouter);
     }
 
     function _cleanOrders() internal {
         bytes32[] memory pendingKeys = _pendingOrders.values();
         for (uint256 i = 0; i < pendingKeys.length; i++) {
             bytes32 key = pendingKeys[i];
-            (bool notExist, ) = LibGmx.getOrder(_projectConfigs, key);
+            (bool notExist, ) = LibGmx.getOrder(_exchangeConfigs, key);
             if (notExist) {
                 _removePendingOrder(key);
             }
@@ -122,7 +122,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         }
         if (swapInToken != _account.collateralToken) {
             context.amountOut = LibGmx.swap(
-                _projectConfigs,
+                _exchangeConfigs,
                 swapInToken,
                 _account.collateralToken,
                 swapInAmount,
@@ -132,7 +132,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
             context.amountOut = swapInAmount;
         }
         context.amountIn = context.amountOut;
-        IERC20Upgradeable(_account.collateralToken).approve(_projectConfigs.router, context.amountIn);
+        IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.router, context.amountIn);
 
         _openPosition(context);
     }
@@ -177,8 +177,8 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
 
     function _cancelTimeoutOrders(bytes32[] memory keys) internal {
         uint256 _now = block.timestamp;
-        uint256 marketTimeout = _projectConfigs.marketOrderTimeoutSeconds;
-        uint256 limitTimeout = _projectConfigs.limitOrderTimeoutSeconds;
+        uint256 marketTimeout = _exchangeConfigs.marketOrderTimeoutSeconds;
+        uint256 limitTimeout = _exchangeConfigs.limitOrderTimeoutSeconds;
         for (uint256 i = 0; i < keys.length; i++) {
             LibGmx.OrderHistory memory history = LibGmx.decodeOrderHistoryKey(keys[i]);
             uint256 elapsed = _now - history.timestamp;

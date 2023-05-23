@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.19;
 
-enum ProjectConfigIds {
+enum ExchangeConfigIds {
     VAULT,
     POSITION_ROUTER,
     ORDER_BOOK,
@@ -9,7 +9,6 @@ enum ProjectConfigIds {
     REFERRAL_CODE,
     MARKET_ORDER_TIMEOUT_SECONDS,
     LIMIT_ORDER_TIMEOUT_SECONDS,
-    FUNDING_ASSET_ID,
     END
 }
 
@@ -22,7 +21,7 @@ enum TokenConfigIds {
     END
 }
 
-struct ProjectConfigs {
+struct ExchangeConfigs {
     address vault;
     address positionRouter;
     address orderBook;
@@ -31,15 +30,13 @@ struct ProjectConfigs {
     // ========================
     uint32 marketOrderTimeoutSeconds;
     uint32 limitOrderTimeoutSeconds;
-    uint8 fundingAssetId;
-    bytes32[19] reserved;
+    bytes32[20] reserved;
 }
 
 struct TokenConfigs {
     address referrenceOracle;
     // --------------------------
     uint32 referenceDeviation;
-    uint32 boostFeeRate;
     uint32 initialMarginRate;
     uint32 maintenanceMarginRate;
     uint32 liquidationFeeRate;
@@ -49,19 +46,14 @@ struct TokenConfigs {
 
 struct AccountState {
     address account;
-    uint256 cumulativeFee;
     address collateralToken;
-    // --------------------------
     address indexToken; // 160
-    uint8 deprecated0; // 8
     bool isLong; // 8
     uint8 collateralDecimals;
-    // reserve 80
-    // --------------------------
     uint256 liquidationFee;
     //ToDo - do we need isLiquidating?
     bool isLiquidating;
-    bytes32[18] reserved;
+    bytes32[20] reserved;
 }
 
 struct OpenPositionContext {

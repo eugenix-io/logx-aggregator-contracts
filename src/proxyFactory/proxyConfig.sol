@@ -13,14 +13,14 @@ contract ProxyConfig is Storage{
         view
         returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion)
     {
-        ExchangeConfigVersion = _ExchangeConfigs[ExchangeId].version;
-        assetConfigVersion = _ExchangeAssetConfigs[ExchangeId][assetToken].version;
+        ExchangeConfigVersion = _exchangeConfigs[ExchangeId].version;
+        assetConfigVersion = _exchangeAssetConfigs[ExchangeId][assetToken].version;
     }
 
     function _setExchangeConfig(uint256 ExchangeId, uint256[] memory values) internal {
-        _ExchangeConfigs[ExchangeId].values = values;
-        _ExchangeConfigs[ExchangeId].version += 1;
-        emit SetExchangeConfig(ExchangeId, values, _ExchangeConfigs[ExchangeId].version);
+        _exchangeConfigs[ExchangeId].values = values;
+        _exchangeConfigs[ExchangeId].version += 1;
+        emit SetExchangeConfig(ExchangeId, values, _exchangeConfigs[ExchangeId].version);
     }
 
     function _setExchangeAssetConfig(
@@ -28,8 +28,8 @@ contract ProxyConfig is Storage{
         address assetToken,
         uint256[] memory values
     ) internal {
-        _ExchangeAssetConfigs[ExchangeId][assetToken].values = values;
-        _ExchangeAssetConfigs[ExchangeId][assetToken].version += 1;
-        emit SetExchangeAssetConfig(ExchangeId, assetToken, values, _ExchangeAssetConfigs[ExchangeId][assetToken].version);
+        _exchangeAssetConfigs[ExchangeId][assetToken].values = values;
+        _exchangeAssetConfigs[ExchangeId][assetToken].version += 1;
+        emit SetExchangeAssetConfig(ExchangeId, assetToken, values, _exchangeAssetConfigs[ExchangeId][assetToken].version);
     }
 }

@@ -18,7 +18,7 @@ contract ProxyBeacon is  Storage, IBeacon{
         bool isLong
     );
 
-    function implementation() public view virtual override returns (address) {
+    function implementation() external view virtual override returns (address) {
         require(_isCreatedProxy(msg.sender), "NotProxy");
         return _implementations[_proxyExchangeIds[msg.sender]];
     }

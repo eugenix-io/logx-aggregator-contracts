@@ -25,7 +25,6 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         address tokenIn;
         uint256 amountIn; // tokenIn.decimals
         uint256 minOut; // collateral.decimals
-        uint256 borrow; // collateral.decimals
         uint256 sizeUsd; // 1e18
         uint96 priceUsd; // 1e18
         uint8 flags; // MARKET, TRIGGER
@@ -72,11 +71,23 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
     }
 
     function getExchangeConfig(uint256 ExchangeId) external view returns (uint256[] memory) {
-        return _ExchangeConfigs[ExchangeId].values;
+        return _exchangeConfigs[ExchangeId].values;
     }
 
     function getExchangeAssetConfig(uint256 ExchangeId, address assetToken) external view returns (uint256[] memory) {
-        return _ExchangeAssetConfigs[ExchangeId][assetToken].values;
+        return _exchangeAssetConfigs[ExchangeId][assetToken].values;
+    }
+
+    function getMainatinerStatus(address maintainer) external view returns(bool){
+        return _maintainers[maintainer];
+    }
+
+    function getConfigVersions(uint256 ExchangeId, address assetToken)
+        external
+        view
+        returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion)
+    {
+        return _getLatestVersions(ExchangeId, assetToken);
     }
 
     // ======================== methods for contract management ========================
@@ -93,16 +104,9 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         uint256 ExchangeId,
         address assetToken,
         uint256[] memory values
-    ) external onlyOwner {
+    ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
         _setExchangeAssetConfig(ExchangeId, assetToken, values);
-    }
-
-    function getConfigVersions(uint256 ExchangeId, address assetToken)
-        external
-        view
-        returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion)
-    {
-        return _getLatestVersions(ExchangeId, assetToken);
     }
 
     function setMaintainer(address maintainer, bool enable) external onlyOwner {
@@ -144,11 +148,9 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
             args.tokenIn,
             args.amountIn,
             args.minOut,
-            args.borrow,
             args.sizeUsd,
             args.priceUsd,
-            args.flags,
-            args.referralCode
+            args.flags
         );
     }
 
@@ -159,8 +161,7 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
             args.collateralUsd,
             args.sizeUsd,
             args.priceUsd,
-            args.flags,
-            args.referralCode
+            args.flags
         );
     }
 

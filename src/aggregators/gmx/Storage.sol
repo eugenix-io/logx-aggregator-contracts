@@ -7,15 +7,15 @@ import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/
 import "./Types.sol";
 
 contract Storage is Initializable {
-    uint256 internal constant PROJECT_ID = 1;
+    uint256 internal constant EXCHANGE_ID = 1;
 
-    uint32 internal _localProjectVersion;
+    uint32 internal _localexchangeVersion;
     mapping(address => uint32) _localAssetVersions;
 
     address internal _factory;
     bytes32 internal _gmxPositionKey;
 
-    ProjectConfigs internal _projectConfigs;
+    ExchangeConfigs internal _exchangeConfigs;
     TokenConfigs internal _assetConfigs;
 
     AccountState internal _account;

@@ -37,7 +37,7 @@ library LibGmx {
     }
 
     function getOraclePrice(
-        ProjectConfigs storage projectConfigs,
+        ExchangeConfigs storage exchangeConfigs,
         address token,
         bool useMaxPrice
     ) internal view returns (uint256 price) {
@@ -46,40 +46,40 @@ library LibGmx {
         // close long = min
         // close short = max
         price = useMaxPrice //isOpen == isLong
-            ? IGmxVault(projectConfigs.vault).getMaxPrice(token)
-            : IGmxVault(projectConfigs.vault).getMinPrice(token);
+            ? IGmxVault(exchangeConfigs.vault).getMaxPrice(token)
+            : IGmxVault(exchangeConfigs.vault).getMinPrice(token);
         require(price != 0, "ZeroOraclePrice");
     }
 
     function swap(
-        ProjectConfigs memory projectConfigs,
+        ExchangeConfigs memory exchangeConfigs,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 minOut
     ) internal returns (uint256 amountOut) {
-        IERC20(tokenIn).safeTransfer(projectConfigs.vault, amountIn);
-        amountOut = IGmxVault(projectConfigs.vault).swap(tokenIn, tokenOut, address(this));
+        IERC20(tokenIn).safeTransfer(exchangeConfigs.vault, amountIn);
+        amountOut = IGmxVault(exchangeConfigs.vault).swap(tokenIn, tokenOut, address(this));
         require(amountOut >= minOut, "AmountOutNotReached");
     }
 
-    function getOrderIndex(ProjectConfigs memory projectConfigs, OrderReceiver receiver)
+    function getOrderIndex(ExchangeConfigs memory exchangeConfigs, OrderReceiver receiver)
         internal
         view
         returns (uint256 index)
     {
         if (receiver == OrderReceiver.PR_INC) {
-            index = IGmxPositionRouter(projectConfigs.positionRouter).increasePositionsIndex(address(this));
+            index = IGmxPositionRouter(exchangeConfigs.positionRouter).increasePositionsIndex(address(this));
         } else if (receiver == OrderReceiver.PR_DEC) {
-            index = IGmxPositionRouter(projectConfigs.positionRouter).decreasePositionsIndex(address(this));
+            index = IGmxPositionRouter(exchangeConfigs.positionRouter).decreasePositionsIndex(address(this));
         } else if (receiver == OrderReceiver.OB_INC) {
-            index = IGmxOrderBook(projectConfigs.orderBook).increaseOrdersIndex(address(this)) - 1;
+            index = IGmxOrderBook(exchangeConfigs.orderBook).increaseOrdersIndex(address(this)) - 1;
         } else if (receiver == OrderReceiver.OB_DEC) {
-            index = IGmxOrderBook(projectConfigs.orderBook).decreaseOrdersIndex(address(this)) - 1;
+            index = IGmxOrderBook(exchangeConfigs.orderBook).decreaseOrdersIndex(address(this)) - 1;
         }
     }
 
-    function getOrder(ProjectConfigs memory projectConfigs, bytes32 key)
+    function getOrder(ExchangeConfigs memory exchangeConfigs, bytes32 key)
         internal
         view
         returns (bool isFilled, OrderHistory memory history)
@@ -87,22 +87,22 @@ library LibGmx {
         history = decodeOrderHistoryKey(key);
         if (history.receiver == OrderReceiver.PR_INC) {
             IGmxPositionRouter.IncreasePositionRequest memory request = IGmxPositionRouter(
-                projectConfigs.positionRouter
+                exchangeConfigs.positionRouter
             ).increasePositionRequests(encodeOrderKey(address(this), history.index));
             isFilled = request.account == address(0);
         } else if (history.receiver == OrderReceiver.PR_DEC) {
             IGmxPositionRouter.DecreasePositionRequest memory request = IGmxPositionRouter(
-                projectConfigs.positionRouter
+                exchangeConfigs.positionRouter
             ).decreasePositionRequests(encodeOrderKey(address(this), history.index));
             isFilled = request.account == address(0);
         } else if (history.receiver == OrderReceiver.OB_INC) {
-            (address collateralToken, , , , , , , , ) = IGmxOrderBook(projectConfigs.orderBook).getIncreaseOrder(
+            (address collateralToken, , , , , , , , ) = IGmxOrderBook(exchangeConfigs.orderBook).getIncreaseOrder(
                 address(this),
                 history.index
             );
             isFilled = collateralToken == address(0);
         } else if (history.receiver == OrderReceiver.OB_DEC) {
-            (address collateralToken, , , , , , , ) = IGmxOrderBook(projectConfigs.orderBook).getDecreaseOrder(
+            (address collateralToken, , , , , , , ) = IGmxOrderBook(exchangeConfigs.orderBook).getDecreaseOrder(
                 address(this),
                 history.index
             );
@@ -150,12 +150,12 @@ library LibGmx {
         }
     }
 
-    function cancelOrder(ProjectConfigs memory projectConfigs, bytes32 key) public returns (bool success) {
+    function cancelOrder(ExchangeConfigs memory exchangeConfigs, bytes32 key) public returns (bool success) {
         OrderHistory memory history = decodeOrderHistoryKey(key);
         success = false;
         if (history.receiver == OrderReceiver.PR_INC) {
             try
-                IGmxPositionRouter(projectConfigs.positionRouter).cancelIncreasePosition(
+                IGmxPositionRouter(exchangeConfigs.positionRouter).cancelIncreasePosition(
                     encodeOrderKey(address(this), history.index),
                     payable(address(this))
                 )
@@ -164,7 +164,7 @@ library LibGmx {
             } catch {}
         } else if (history.receiver == OrderReceiver.PR_DEC) {
             try
-                IGmxPositionRouter(projectConfigs.positionRouter).cancelDecreasePosition(
+                IGmxPositionRouter(exchangeConfigs.positionRouter).cancelDecreasePosition(
                     encodeOrderKey(address(this), history.index),
                     payable(address(this))
                 )
@@ -172,11 +172,11 @@ library LibGmx {
                 success = _success;
             } catch {}
         } else if (history.receiver == OrderReceiver.OB_INC) {
-            try IGmxOrderBook(projectConfigs.orderBook).cancelIncreaseOrder(history.index) {
+            try IGmxOrderBook(exchangeConfigs.orderBook).cancelIncreaseOrder(history.index) {
                 success = true;
             } catch {}
         } else if (history.receiver == OrderReceiver.OB_DEC) {
-            try IGmxOrderBook(projectConfigs.orderBook).cancelDecreaseOrder(history.index) {
+            try IGmxOrderBook(exchangeConfigs.orderBook).cancelDecreaseOrder(history.index) {
                 success = true;
             } catch {}
         } else {
@@ -185,7 +185,7 @@ library LibGmx {
     }
 
     function getPnl(
-        ProjectConfigs memory projectConfigs,
+        ExchangeConfigs memory exchangeConfigs,
         address indexToken,
         uint256 size,
         uint256 averagePriceUsd,
@@ -202,8 +202,8 @@ library LibGmx {
         } else {
             hasProfit = averagePriceUsd > priceUsd;
         }
-        uint256 minProfitTime = IGmxVault(projectConfigs.vault).minProfitTime();
-        uint256 minProfitBasisPoints = IGmxVault(projectConfigs.vault).minProfitBasisPoints(indexToken);
+        uint256 minProfitTime = IGmxVault(exchangeConfigs.vault).minProfitTime();
+        uint256 minProfitBasisPoints = IGmxVault(exchangeConfigs.vault).minProfitBasisPoints(indexToken);
         uint256 minBps = block.timestamp > lastIncreasedTime + minProfitTime ? 0 : minProfitBasisPoints;
         if (hasProfit && delta * 10000 <= size * minBps) {
             delta = 0;

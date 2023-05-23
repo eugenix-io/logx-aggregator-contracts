@@ -30,11 +30,13 @@ interface IProxyFactory {
         bytes32 referralCode;
     }
 
+
     event SetReferralCode(bytes32 referralCode);
     event SetMaintainer(address maintainer, bool enable);
 
     function initialize(address weth_) external;
     function weth() external view returns (address);
+    function implementation() external view returns(address);
     function getImplementationAddress(uint256 exchangeId) external view returns(address);
     function getProxyExchangeId(address proxy) external view returns(uint256);
     function getTradingProxy(bytes32 proxyId) external view returns(address);

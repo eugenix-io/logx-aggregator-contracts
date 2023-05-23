@@ -44,14 +44,14 @@ contract Position  is Storage{
     }
 
     function _getGmxPosition() internal view returns (IGmxVault.Position memory) {
-        return IGmxVault(_projectConfigs.vault).positions(_gmxPositionKey);
+        return IGmxVault(_exchangeConfigs.vault).positions(_gmxPositionKey);
     }
 
     function _addPendingOrder(
         LibGmx.OrderCategory category,
         LibGmx.OrderReceiver receiver
     ) internal returns (uint256 index) {
-        index = LibGmx.getOrderIndex(_projectConfigs, receiver);
+        index = LibGmx.getOrderIndex(_exchangeConfigs, receiver);
         require(
             _pendingOrders.add(LibGmx.encodeOrderHistoryKey(category, receiver, index, block.timestamp)),
             "AddFailed"
@@ -70,7 +70,7 @@ contract Position  is Storage{
         // 1. gmx pnl and funding, 1e30
         if (position.sizeUsd != 0) {
             (hasProfit, gmxPnlUsd) = LibGmx.getPnl(
-                _projectConfigs,
+                _exchangeConfigs,
                 _account.indexToken,
                 position.sizeUsd,
                 position.averagePrice,
@@ -78,7 +78,7 @@ contract Position  is Storage{
                 priceUsd,
                 position.lastIncreasedTime
             );
-            gmxFundingFeeUsd = IGmxVault(_projectConfigs.vault).getFundingFee(
+            gmxFundingFeeUsd = IGmxVault(_exchangeConfigs.vault).getFundingFee(
                 _account.collateralToken,
                 position.sizeUsd,
                 position.entryFundingRate
@@ -91,7 +91,7 @@ contract Position  is Storage{
         if (_account.isLong) {
             value -= (int256(deltaCollateral) * int256(position.averagePrice)) / int256(10**_account.collateralDecimals); // 1e30
         } else {
-            uint256 tokenPrice = LibGmx.getOraclePrice(_projectConfigs, _account.collateralToken, false); // 1e30
+            uint256 tokenPrice = LibGmx.getOraclePrice(_exchangeConfigs, _account.collateralToken, false); // 1e30
             value -= (int256(deltaCollateral) * int256(tokenPrice)) / int256(10**_account.collateralDecimals); // 1e30
         }
         if (value > 0) {
@@ -117,7 +117,7 @@ contract Position  is Storage{
         if (isNegative) {
             return false;
         }
-        uint256 liquidationFeeUsd = IGmxVault(_projectConfigs.vault).liquidationFeeUsd();
+        uint256 liquidationFeeUsd = IGmxVault(_exchangeConfigs.vault).liquidationFeeUsd();
         return accountValue >= (position.sizeUsd + deltaSizeUsd).rate(threshold).max(liquidationFeeUsd);
     }
 
@@ -129,7 +129,7 @@ contract Position  is Storage{
                 position,
                 context.amountIn,
                 context.sizeUsd,
-                LibGmx.getOraclePrice(_projectConfigs, _account.indexToken, !_account.isLong),
+                LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong),
                 _assetConfigs.initialMarginRate
             ),
             "ImMarginUnsafe"
@@ -137,7 +137,7 @@ contract Position  is Storage{
         address[] memory path = new address[](1);
         path[0] = _account.collateralToken;
         if (context.isMarket) {
-            IGmxPositionRouter(_projectConfigs.positionRouter).createIncreasePosition{ value: context.executionFee }(
+            IGmxPositionRouter(_exchangeConfigs.positionRouter).createIncreasePosition{ value: context.executionFee }(
                 path,
                 _account.indexToken,
                 context.amountIn,
@@ -146,7 +146,7 @@ contract Position  is Storage{
                 _account.isLong,
                 _account.isLong ? type(uint256).max : 0,
                 context.executionFee,
-                _projectConfigs.referralCode,
+                _exchangeConfigs.referralCode,
                 address(0)
             );
             context.gmxOrderIndex = _addPendingOrder(
@@ -154,7 +154,7 @@ contract Position  is Storage{
                 LibGmx.OrderReceiver.PR_INC
             );
         } else {
-            IGmxOrderBook(_projectConfigs.orderBook).createIncreaseOrder{ value: context.executionFee }(
+            IGmxOrderBook(_exchangeConfigs.orderBook).createIncreaseOrder{ value: context.executionFee }(
                 path,
                 context.amountIn,
                 _account.indexToken,
@@ -184,7 +184,7 @@ contract Position  is Storage{
                 position,
                 0,
                 0,
-                LibGmx.getOraclePrice(_projectConfigs, _account.indexToken, !_account.isLong),
+                LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong),
                 _assetConfigs.maintenanceMarginRate
             ),
             "MmMarginUnsafe"
@@ -195,7 +195,7 @@ contract Position  is Storage{
         path[0] = _account.collateralToken;
         if (context.isMarket) {
             context.priceUsd = _account.isLong ? 0 : type(uint256).max;
-            IGmxPositionRouter(_projectConfigs.positionRouter).createDecreasePosition{ value: executionFee }(
+            IGmxPositionRouter(_exchangeConfigs.positionRouter).createDecreasePosition{ value: executionFee }(
                 path, // no swap for collateral
                 _account.indexToken,
                 context.collateralUsd,
@@ -210,9 +210,9 @@ contract Position  is Storage{
             );
             context.gmxOrderIndex = _addPendingOrder(LibGmx.OrderCategory.CLOSE, LibGmx.OrderReceiver.PR_DEC);
         } else {
-            uint256 oralcePrice = LibGmx.getOraclePrice(_projectConfigs, _account.indexToken, !_account.isLong);
+            uint256 oralcePrice = LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong);
             uint256 priceUsd = context.priceUsd;
-            IGmxOrderBook(_projectConfigs.orderBook).createDecreaseOrder{ value: executionFee }(
+            IGmxOrderBook(_exchangeConfigs.orderBook).createDecreaseOrder{ value: executionFee }(
                 _account.indexToken,
                 context.sizeUsd,
                 _account.collateralToken,
@@ -228,7 +228,7 @@ contract Position  is Storage{
 
     function _cancelOrder(bytes32 key) internal returns (bool success) {
         require(_hasPendingOrder(key), "KeyNotExists");
-        success = LibGmx.cancelOrder(_projectConfigs, key);
+        success = LibGmx.cancelOrder(_exchangeConfigs, key);
         _removePendingOrder(key);
         emit CancelOrder(key, success);
     }

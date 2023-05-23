@@ -18,13 +18,13 @@ contract Config is Storage, Position{
 
     function _updateConfigs() internal virtual{
         address token = _account.indexToken;
-        (uint32 latestProjectVersion, uint32 latestAssetVersion) = IProxyFactory(_factory).getConfigVersions(
-            PROJECT_ID,
+        (uint32 latestexchangeVersion, uint32 latestAssetVersion) = IProxyFactory(_factory).getConfigVersions(
+            EXCHANGE_ID,
             token
         );
-        if (_localProjectVersion < latestProjectVersion) {
-            _updateProjectConfigs();
-            _localProjectVersion = latestProjectVersion;
+        if (_localexchangeVersion < latestexchangeVersion) {
+            _updateexchangeConfigs();
+            _localexchangeVersion = latestexchangeVersion;
         }
         // pull configs from factory
         if (_localAssetVersions[token] < latestAssetVersion) {
@@ -34,28 +34,27 @@ contract Config is Storage, Position{
         _patch();
     }
 
-    function _updateProjectConfigs() internal {
-        uint256[] memory values = IProxyFactory(_factory).getExchangeConfig(PROJECT_ID);
-        require(values.length >= uint256(ProjectConfigIds.END), "MissingConfigs");
+    function _updateexchangeConfigs() internal {
+        uint256[] memory values = IProxyFactory(_factory).getExchangeConfig(EXCHANGE_ID);
+        require(values.length >= uint256(ExchangeConfigIds.END), "MissingConfigs");
 
-        address newPositionRouter = values[uint256(ProjectConfigIds.POSITION_ROUTER)].toAddress();
-        address newOrderBook = values[uint256(ProjectConfigIds.ORDER_BOOK)].toAddress();
+        address newPositionRouter = values[uint256(ExchangeConfigIds.POSITION_ROUTER)].toAddress();
+        address newOrderBook = values[uint256(ExchangeConfigIds.ORDER_BOOK)].toAddress();
         _onGmxAddressUpdated(
-            _projectConfigs.positionRouter,
-            _projectConfigs.orderBook,
+            _exchangeConfigs.positionRouter,
+            _exchangeConfigs.orderBook,
             newPositionRouter,
             newOrderBook
         );
-        _projectConfigs.vault = values[uint256(ProjectConfigIds.VAULT)].toAddress();
-        _projectConfigs.positionRouter = newPositionRouter;
-        _projectConfigs.orderBook = newOrderBook;
-        _projectConfigs.router = values[uint256(ProjectConfigIds.ROUTER)].toAddress();
-        _projectConfigs.referralCode = bytes32(values[uint256(ProjectConfigIds.REFERRAL_CODE)]);
-        _projectConfigs.marketOrderTimeoutSeconds = values[uint256(ProjectConfigIds.MARKET_ORDER_TIMEOUT_SECONDS)]
+        _exchangeConfigs.vault = values[uint256(ExchangeConfigIds.VAULT)].toAddress();
+        _exchangeConfigs.positionRouter = newPositionRouter;
+        _exchangeConfigs.orderBook = newOrderBook;
+        _exchangeConfigs.router = values[uint256(ExchangeConfigIds.ROUTER)].toAddress();
+        _exchangeConfigs.referralCode = bytes32(values[uint256(ExchangeConfigIds.REFERRAL_CODE)]);
+        _exchangeConfigs.marketOrderTimeoutSeconds = values[uint256(ExchangeConfigIds.MARKET_ORDER_TIMEOUT_SECONDS)]
             .toU32();
-        _projectConfigs.limitOrderTimeoutSeconds = values[uint256(ProjectConfigIds.LIMIT_ORDER_TIMEOUT_SECONDS)]
+        _exchangeConfigs.limitOrderTimeoutSeconds = values[uint256(ExchangeConfigIds.LIMIT_ORDER_TIMEOUT_SECONDS)]
             .toU32();
-        _projectConfigs.fundingAssetId = values[uint256(ProjectConfigIds.FUNDING_ASSET_ID)].toU8();
     }
 
     function _onGmxAddressUpdated(
@@ -81,7 +80,7 @@ contract Config is Storage, Position{
     }
 
     function _updateAssetConfigs() internal {
-        uint256[] memory values = IProxyFactory(_factory).getExchangeAssetConfig(PROJECT_ID, _account.collateralToken);
+        uint256[] memory values = IProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, _account.collateralToken);
         require(values.length >= uint256(TokenConfigIds.END), "MissingConfigs");
         _assetConfigs.initialMarginRate = values[uint256(TokenConfigIds.INITIAL_MARGIN_RATE)].toU32();
         _assetConfigs.maintenanceMarginRate = values[uint256(TokenConfigIds.MAINTENANCE_MARGIN_RATE)].toU32();
