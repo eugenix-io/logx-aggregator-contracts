@@ -8,11 +8,13 @@ import "./test_setUp.sol";
 
 contract TestProxyFactory is Test, Setup{
 
+    //Note test for createProxy done in gmxAdapter tests while initializing the contracts.
+
     ProxyFactory private _proxyFactory;
-    //GMXAdapter private _gmxAdapter;
     
     function setUp() public {
         _proxyFactory = new ProxyFactory();
+    
         setUpGmxConfig();
 
         _proxyFactory.initialize(_weth);
@@ -97,12 +99,12 @@ contract TestProxyFactory is Test, Setup{
         assertEq(assetConfigVersion, 1);
     }
 
-    //ToDo - write test for createProxy
-    // function testCreateProxy() public{
-    //     vm.prank(_account);
-    //     _proxyFactory.createProxy(_exchangeId, _wbtc, _wbtc, true);
-    // }
+    function testCreateProxy() public{
+        vm.prank(_account);
+        _proxyFactory.createProxy(1, _dai, _wbtc, false);
+    }
 
+    //The following test cases are not possible to write until we have an implementation contract live on mainnet / testnet
     //ToDo - write test for openPosition
     //ToDo - write test for closePosition
     //ToDo - write test for closeOrder
