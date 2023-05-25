@@ -10,6 +10,7 @@ import "./Storage.sol";
 import "./Types.sol";
 
 contract Positions is Storage{
+    //ToDo - look into the whole uint64 to bytes32 conversion and see if there is a way pending orders can be saved as uint64.
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
 
     uint256 internal constant MAX_PENDING_ORDERS = 64;
@@ -57,7 +58,6 @@ contract Positions is Storage{
             }
         }
     }
-
 
     function _isMarginSafe(SubAccount memory subAccount, uint96 collateralPrice, uint96 assetPrice, bool isLong, bool isOpen) internal view returns(bool){
         //ToDo - double check if the following calculations are solid.

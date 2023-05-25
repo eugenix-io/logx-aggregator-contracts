@@ -29,9 +29,7 @@ interface IMuxAggregator {
         IMuxOrderBook.PositionOrderExtra memory extra
     ) external payable;
     
-    function cancelOrders(bytes32[] calldata keys) external;
-
-    function cancelTimeoutOrders(bytes32[] calldata keys) external;
+    function cancelOrders(uint64[] calldata keys) external;
 
     function getPendingOrderKeys() external view returns (bytes32[] memory);
 }

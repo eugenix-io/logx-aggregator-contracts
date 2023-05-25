@@ -118,6 +118,10 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         }
     }
 
+    function getPendingOrderKeys() external view returns (bytes32[] memory){
+        return _getPendingOrders();
+    }
+
 
     function _isMarketOrder(uint8 flags) internal pure returns (bool) {
         return (flags & POSITION_MARKET_ORDER) != 0;
