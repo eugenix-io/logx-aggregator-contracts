@@ -4,9 +4,9 @@ pragma solidity 0.8.19;
 import "../../lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol";
 import "../../lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
 
-import "./Storage.sol";
+import "./MuxStorage.sol";
 
-contract ProxyBeacon is  Storage, IBeacon{
+contract MuxProxyBeacon is  MuxStorage, IBeacon{
     event Upgraded(uint256 exchangeId, address indexed implementation);
     event CreateProxy(
         uint256 exchangeId,
@@ -15,6 +15,7 @@ contract ProxyBeacon is  Storage, IBeacon{
         address proxy,
         address assetToken,
         address collateralToken,
+        address profitToken,
         bool isLong
     );
 
@@ -55,24 +56,26 @@ contract ProxyBeacon is  Storage, IBeacon{
         address account,
         address assetToken,
         address collateralToken,
+        address profitToken,
         bool isLong
     ) internal returns (address) {
         // require(exchangeId) // isValid
         bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, assetToken, isLong);
         require(_tradingProxies[proxyId] == address(0), "AlreadyCreated");
         bytes memory initData = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,bool)",
+            "initialize(uint256,address,address,address,address,bool)",
             exchangeId,
             account,
             collateralToken,
             assetToken,
+            profitToken,
             isLong
         );
         bytes memory bytecode = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(address(this), initData));
         address proxy = _createProxy(exchangeId, proxyId, bytecode);
         _tradingProxies[proxyId] = proxy;
         _ownedProxies[account].push(proxy);
-        emit CreateProxy(exchangeId, proxyId, account, proxy, assetToken, collateralToken, isLong);
+        emit CreateProxy(exchangeId, proxyId, account, proxy, assetToken, collateralToken, profitToken,isLong);
         return proxy;
     }
 

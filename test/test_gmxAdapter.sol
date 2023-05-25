@@ -5,8 +5,8 @@ import "../lib/forge-std/src/Test.sol";
 
 import "../lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
 
-import "../src/interfaces/IAggregator.sol";
-import "../src/interfaces/IProxyFactory.sol";
+import "../src/interfaces/IGmxAggregator.sol";
+import "../src/interfaces/IGmxProxyFactory.sol";
 import "../src/interfaces/IGmxRouter.sol";
 import "../src/interfaces/IGmxOrderBook.sol";
 import "../src/interfaces/IGmxPositionRouter.sol";
@@ -17,7 +17,7 @@ import "../src/aggregators/gmx/Types.sol";
 import "./test_setUp.sol";
 
 contract TestGmxAdapter is Test, Setup{
-    IProxyFactory private _proxyFactory;
+    IGmxProxyFactory private _proxyFactory;
     IGmxRouter private _gmxRouter;
     IGmxOrderBook private _gmxOrderBook;
     IGmxPositionRouter private _gmxPositionRouter;
@@ -26,8 +26,8 @@ contract TestGmxAdapter is Test, Setup{
     IWETH private _iweth;
 
     //Initializing two adapters, one for a long position and another for a short position
-    IAggregator private _gmxAdapterProxyLong;
-    IAggregator private _gmxAdapterProxyShort;
+    IGmxAggregator private _gmxAdapterProxyLong;
+    IGmxAggregator private _gmxAdapterProxyShort;
     GMXAdapter private _gmxAdapterInstance;
 
     event OpenPosition(address collateralToken, address indexToken, bool isLong, OpenPositionContext context);
@@ -77,7 +77,7 @@ contract TestGmxAdapter is Test, Setup{
         }
         require(proxyLong != address(0), "CreateFailed");
 
-        _gmxAdapterProxyLong = IAggregator(proxyLong);
+        _gmxAdapterProxyLong = IGmxAggregator(proxyLong);
 
         // ----------- Short Position Initialization ----------------
         address proxyShort;
@@ -97,7 +97,7 @@ contract TestGmxAdapter is Test, Setup{
         }
         require(proxyShort != address(0), "CreateFailed");
 
-        _gmxAdapterProxyShort = IAggregator(proxyShort);
+        _gmxAdapterProxyShort = IGmxAggregator(proxyShort);
     }
 
     function testInitialization() public{

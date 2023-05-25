@@ -8,39 +8,29 @@ import "../../lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpg
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import "../interfaces/IAggregator.sol";
+import "../interfaces/IMuxAggregator.sol";
 
-import "./Storage.sol";
-import "./ProxyBeacon.sol";
-import "./ProxyConfig.sol";
+import "./MuxStorage.sol";
+import "./MuxProxyBeacon.sol";
+import "./MuxProxyConfig.sol";
 
-contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
+contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    struct OpenPositionArgs {
+    struct PositionArgs {
         uint256 exchangeId;
         address collateralToken;
         address assetToken;
+        address profitToken;
         bool isLong;
-        address tokenIn;
-        uint256 amountIn; // tokenIn.decimals
-        uint256 minOut; // collateral.decimals
-        uint256 sizeUsd; // 1e18
-        uint96 priceUsd; // 1e18
+        uint256 collateralAmount; // tokenIn.decimals
+        uint256 size; // 1e18
+        uint96 price; // 1e18
+        uint96 collateralPrice;
+        uint96 assetPrice;
         uint8 flags; // MARKET, TRIGGER
         bytes32 referralCode;
-    }
-
-    struct ClosePositionArgs {
-        uint256 exchangeId;
-        address collateralToken;
-        address assetToken;
-        bool isLong;
-        uint256 collateralUsd; // collateral.decimals
-        uint256 sizeUsd; // 1e18
-        uint96 priceUsd; // 1e18
-        uint8 flags; // MARKET, TRIGGER
-        bytes32 referralCode;
+        uint32 deadline;
     }
 
     event SetReferralCode(bytes32 referralCode);
@@ -119,6 +109,7 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         uint256 exchangeId,
         address collateralToken,
         address assetToken,
+        address profitToken,
         bool isLong
     ) public returns (address) {
         //ToDo - verify collateral and asset IDs before we create a proxy
@@ -128,40 +119,51 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
                 msg.sender,
                 assetToken,
                 collateralToken,
+                profitToken,
                 isLong
             );
     }
 
-    function openPosition(OpenPositionArgs calldata args) external payable {
+    function openPosition(PositionArgs calldata args, IMuxOrderBook.PositionOrderExtra calldata extra) external payable {
         bytes32 proxyId = _makeProxyId(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
         address proxy = _tradingProxies[proxyId];
         if (proxy == address(0)) {
-            proxy = createProxy(args.exchangeId, args.collateralToken, args.assetToken, args.isLong);
+            proxy = createProxy(args.exchangeId, args.collateralToken, args.assetToken, args.profitToken, args.isLong);
         }
-        if (args.tokenIn != _weth) {
-            IERC20Upgradeable(args.tokenIn).safeTransferFrom(msg.sender, proxy, args.amountIn);
+        if (args.collateralToken != _weth) {
+            IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, args.collateralAmount);
         } else {
-            require(msg.value >= args.amountIn, "InsufficientAmountIn");
+            require(msg.value >= args.collateralAmount, "InsufficientAmountIn");
         }
 
-        IAggregator(proxy).openPosition{ value: msg.value }(
-            args.tokenIn,
-            args.amountIn,
-            args.minOut,
-            args.sizeUsd,
-            args.priceUsd,
-            args.flags
+        IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
+            args.collateralToken,
+            args.collateralAmount,
+            args.size,
+            args.price,
+            args.flags,
+            args.assetPrice,
+            args.collateralPrice,
+            args.deadline,
+            args.isLong,
+            extra
         );
     }
 
-    function closePosition(ClosePositionArgs calldata args) external payable {
+    function closePosition(PositionArgs calldata args, IMuxOrderBook.PositionOrderExtra calldata extra) external payable {
         address proxy = _mustGetProxy(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
 
-        IAggregator(proxy).closePosition{ value: msg.value }(
-            args.collateralUsd,
-            args.sizeUsd,
-            args.priceUsd,
-            args.flags
+        IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
+            args.collateralToken,
+            args.collateralAmount,
+            args.size,
+            args.price,
+            args.flags,
+            args.assetPrice,
+            args.collateralPrice,
+            args.deadline,
+            args.isLong,
+            extra
         );
     }
 
@@ -172,7 +174,7 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         bool isLong,
         bytes32[] calldata keys
     ) external {
-        IAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).cancelOrders(keys);
+        IMuxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).cancelOrders(keys);
     }
 
     // ======================== Utility methods ========================

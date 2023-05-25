@@ -5,7 +5,7 @@ import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/math/SafeMathUpgradeable.sol";
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/math/MathUpgradeable.sol";
 
-import "./lib/LibUtils.sol";
+import "../lib/LibUtils.sol";
 import "./lib/LibGmx.sol";
 import "./Storage.sol";
 

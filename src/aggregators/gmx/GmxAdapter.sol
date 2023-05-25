@@ -8,7 +8,7 @@ import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/ex
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 
 import "../../interfaces/IGmxRouter.sol";
-import "../../interfaces/IProxyFactory.sol";
+import "../../interfaces/IGmxProxyFactory.sol";
 
 import "../../components/ImplementationGuard.sol";
 import "./Storage.sol";
@@ -19,9 +19,6 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
     using MathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
-
-    //ToDo  - we have to decide whether we want to kee the same flags as MUX
-    uint8 constant POSITION_MARKET_ORDER = 0x40;
 
     address internal immutable _WETH;
 
@@ -37,7 +34,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
     }
 
     modifier onlyFactory() {
-        require(msg.sender == _factory, "onlyKeeper");
+        require(msg.sender == _factory, "onlyFactory");
         _;
     }
 
@@ -100,7 +97,6 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         uint96 priceUsd, // 1e18
         uint8 flags // MARKET, TRIGGER
     ) external payable onlyTraderOrFactory nonReentrant {
-        require(!_account.isLiquidating, "TradeForbidden");
 
         _updateConfigs();
         _tryApprovePlugins();
@@ -144,7 +140,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         uint96 priceUsd, // 1e18
         uint8 flags // MARKET, TRIGGER
     ) external payable onlyTraderOrFactory nonReentrant {
-        require(!_account.isLiquidating, "TradeForbidden");
+
         _updateConfigs();
         _cleanOrders();
 

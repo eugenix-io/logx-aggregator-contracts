@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import "../lib/forge-std/src/Test.sol";
-import "../src/proxyFactory/ProxyFactory.sol";
+import "../src/gmxProxyFactory/GmxProxyFactory.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol";
 import "./test_setUp.sol";
 
@@ -10,10 +10,10 @@ contract TestProxyFactory is Test, Setup{
 
     //Note test for createProxy done in gmxAdapter tests while initializing the contracts.
 
-    ProxyFactory private _proxyFactory;
+    GmxProxyFactory private _proxyFactory;
     
     function setUp() public {
-        _proxyFactory = new ProxyFactory();
+        _proxyFactory = new GmxProxyFactory();
     
         setUpGmxConfig();
 
@@ -97,11 +97,6 @@ contract TestProxyFactory is Test, Setup{
         (exchangeConfigVersion, assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId, _wbtc);
         assertEq(exchangeConfigVersion, 1);
         assertEq(assetConfigVersion, 1);
-    }
-
-    function testCreateProxy() public{
-        vm.prank(_account);
-        _proxyFactory.createProxy(1, _dai, _wbtc, false);
     }
 
     //The following test cases are not possible to write until we have an implementation contract live on mainnet / testnet

@@ -50,9 +50,6 @@ struct AccountState {
     address indexToken; // 160
     bool isLong; // 8
     uint8 collateralDecimals;
-    uint256 liquidationFee;
-    //ToDo - do we need isLiquidating?
-    bool isLiquidating;
     bytes32[20] reserved;
 }
 

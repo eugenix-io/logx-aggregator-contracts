@@ -17,8 +17,7 @@ library LibGmx {
     enum OrderCategory {
         NONE,
         OPEN,
-        CLOSE,
-        LIQUIDATE
+        CLOSE
     }
 
     enum OrderReceiver {

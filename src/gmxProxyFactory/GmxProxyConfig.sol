@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.19;
 
-import "./Storage.sol";
+import "./GmxStorage.sol";
 
-contract ProxyConfig is Storage{
+contract GmxProxyConfig is GmxStorage{
 
     event SetExchangeConfig(uint256 ExchangeId, uint256[] values, uint256 version);
     event SetExchangeAssetConfig(uint256 ExchangeId, address assetToken, uint256[] values, uint256 version);

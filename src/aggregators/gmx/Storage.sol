@@ -23,4 +23,7 @@ contract Storage is Initializable {
 
     //ToDo - Do we need these gaps?
     //bytes32[50] private __gaps;
+
+    //Position Market order constant flag
+    uint8 constant POSITION_MARKET_ORDER = 0x40;
 }

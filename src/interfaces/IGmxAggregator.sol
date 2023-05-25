@@ -3,13 +3,12 @@ pragma solidity 0.8.19;
 
 import "../aggregators/gmx/Types.sol";
 
-interface IAggregator {
+interface IGmxAggregator {
     function initialize(
         uint256 projectId,
         address account,
-        address assetToken,
         address collateralToken,
-        uint8 collateralId,
+        address assetToken,
         bool isLong
     ) external;
 
@@ -30,8 +29,6 @@ interface IAggregator {
         uint96 priceUsd, // 1e18
         uint8 flags // MARKET, TRIGGER
     ) external payable;
-
-    function liquidatePosition(uint256 liquidatePrice) external payable;
 
     function cancelOrders(bytes32[] calldata keys) external;
 

@@ -3,7 +3,7 @@ pragma solidity 0.8.19;
 
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 
-contract Storage is Initializable{
+contract GmxStorage is Initializable{
 
     struct ConfigData {
         uint32 version;
