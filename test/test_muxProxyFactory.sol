@@ -24,12 +24,12 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setMaintainer(_maintainer, true);
     }
 
-    function testmuxInitialize() public{
+    function testMuxInitialize() public{
         assertEq(_proxyFactory.weth(), _weth, "WETH was not correctly initialized");
         assertEq(_proxyFactory.owner(), address(this), "Owner was not correctly initialized");
     }
 
-    function testmuxUpgradeTo() public{
+    function testMuxUpgradeTo() public{
         assertEq(_proxyFactory.getImplementationAddress(_exchangeId), _implementation, "Incorrect implementation was set");
 
         //Address which is not owner of contract should not be able to call the upgradeTo function
@@ -38,11 +38,11 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.upgradeTo(_exchangeId, _implementation);
     }
 
-    function tesmuxtWeth() public{
+    function tesMuxWeth() public{
         assertEq(_proxyFactory.weth(), _weth, "WETH was not correctly returned");
     }
 
-    function testmuxSetMaintainer() public{
+    function testMuxSetMaintainer() public{
         assertEq(_proxyFactory.getMainatinerStatus(_maintainer), true);
 
         //Address which is not owner of contract should not be able to call the setMaintainer function
@@ -51,7 +51,7 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setMaintainer(_maintainer, true);
     }
 
-    function testmuxSetExchangeConfig() public{
+    function testMuxSetExchangeConfig() public{
         _proxyFactory.setExchangeConfig(_exchangeId, muxExchangeConfigs);
         assertEq(_proxyFactory.getExchangeConfig(_exchangeId), muxExchangeConfigs);
 
@@ -66,7 +66,7 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setExchangeConfig(_exchangeId, muxExchangeConfigs);
     }
 
-    function testmuxSetExchangeAssetConfig() public{
+    function testMuxSetExchangeAssetConfig() public{
         _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, muxExchangeAssetConfigs_btc);
         assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId, _wbtc), muxExchangeAssetConfigs_btc);
 
@@ -81,7 +81,7 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, muxExchangeAssetConfigs_btc);
     }
 
-    function testGetConfigVersions() public{
+    function testMuxGetConfigVersions() public{
         (uint32 exchangeConfigVersion, uint32 assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId, _wbtc);
         assertEq(exchangeConfigVersion, 0);
         assertEq(assetConfigVersion, 0);

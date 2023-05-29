@@ -81,7 +81,7 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
     }
 
-    function testGetConfigVersions() public{
+    function testGmxGetConfigVersions() public{
         (uint32 exchangeConfigVersion, uint32 assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId, _wbtc);
         assertEq(exchangeConfigVersion, 0);
         assertEq(assetConfigVersion, 0);
