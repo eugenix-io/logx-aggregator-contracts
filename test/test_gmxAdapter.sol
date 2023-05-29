@@ -16,8 +16,6 @@ import "../src/aggregators/gmx/GmxAdapter.sol";
 import "../src/aggregators/gmx/Types.sol";
 import "./test_gmxSetUp.sol";
 
-import "../lib/forge-std/src/console.sol";
-
 contract TestGmxAdapter is Test, Setup{
     IGmxProxyFactory private _proxyFactory;
     IGmxRouter private _gmxRouter;

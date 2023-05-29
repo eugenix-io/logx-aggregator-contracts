@@ -3,7 +3,6 @@ pragma solidity 0.8.19;
 
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 import "../../../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
@@ -15,10 +14,7 @@ import "./Storage.sol";
 import "./Config.sol";
 import "./Positions.sol";
 
-import "../../../lib/forge-std/src/console.sol";
-
 contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, ReentrancyGuardUpgradeable{
-    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using Address for address;
 
@@ -130,14 +126,14 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         _placePositionOrder(context);
     }
 
-    function cancelOrder(uint64[] memory orderIds) external onlyTraderOrFactory nonReentrant{
+    function cancelOrders(uint64[] memory orderIds) external onlyTraderOrFactory nonReentrant{
         for (uint256 i = 0; i < orderIds.length; i++) {
             bool success = _cancelOrder(orderIds[i]);
             require(success, "CancelFailed");
         }
     }
 
-    function getPendingOrderKeys() external view returns (bytes32[] memory){
+    function getPendingOrderKeys() external view returns (uint64[] memory){
         return _getPendingOrders();
     }
 
@@ -179,10 +175,10 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
     }
 
     function _cleanOrders() internal {
-        bytes32[] memory pendingKeys = _pendingOrders.values();
+        uint64[] memory pendingKeys = _pendingOrders;
         for (uint256 i = 0; i < pendingKeys.length; i++) {
             //ToDo - Beware of dataloss from typecasting
-            uint64 key = uint64(bytes8(pendingKeys[i]));
+            uint64 key = pendingKeys[i];
             ( ,bool notExist) = LibMux.getOrder(_exchangeConfigs, key);
             if (notExist) {
                 _removePendingOrder(key);

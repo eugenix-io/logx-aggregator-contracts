@@ -91,6 +91,7 @@ library LibMux {
     // check Types.PositionOrder for schema
     function decodePositionOrder(bytes32[3] memory data) internal pure returns (PositionOrder memory order) {
         order.subAccountId = bytes32(bytes23(data[0]));
+        order.id = uint64((uint256(data[0]) >> 8) & ((1 << 64) - 1));
         order.collateral = uint96(bytes12(data[2] << 96));
         order.size = uint96(bytes12(data[1]));
         order.flags = uint8(bytes1(data[1] << 104));

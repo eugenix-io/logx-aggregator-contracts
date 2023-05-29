@@ -32,5 +32,5 @@ interface IMuxAggregator {
     
     function cancelOrders(uint64[] calldata keys) external;
 
-    function getPendingOrderKeys() external view returns (bytes32[] memory);
+    function getPendingOrderKeys() external view returns (uint64[] memory);
 }

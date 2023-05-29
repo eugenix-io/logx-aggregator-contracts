@@ -20,7 +20,7 @@ contract Storage is Initializable{
     TokenConfigs internal _assetConfigs;
     TokenConfigs internal _collateralConfigs;
 
-    EnumerableSetUpgradeable.Bytes32Set internal _pendingOrders;
+    uint64[] internal _pendingOrders;
 
     //MUX Position Constants
     uint8 constant POSITION_OPEN = 0x80; // this flag means openPosition; otherwise closePosition

@@ -42,8 +42,6 @@ contract TestMuxAdapter is Test, Setup{
         //Mock transferFrom calls to collateral tokens
         vm.mockCall(address(_wbtc), abi.encodeWithSelector(_erc20.transferFrom.selector), abi.encode());
         vm.mockCall(address(_dai), abi.encodeWithSelector(_erc20.transferFrom.selector), abi.encode());
-        //vm.mockCall(address(_dai), abi.encodeWithSelector(_erc20.transfer.selector), abi.encode());
-        //vm.mockCall(address(_weth), abi.encodeWithSelector(_erc20.transfer.selector), abi.encode());
 
         // ----------- Long Position Initialization ----------------
         address proxyLong;
@@ -119,6 +117,17 @@ contract TestMuxAdapter is Test, Setup{
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_dai, _weth, false, openOrderContext);
         _muxAdapterProxyShort.placePositionOrder(_dai, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _usdc, extra);
+
+        flags = 0x80 + 0x08; //Open Position Order | TPSL Order
+        extra = PositionOrderExtra({
+            tpslProfitTokenId : 4,
+            tpPrice : 13038357806412945305,
+            slPrice : 11038357806412945305,
+            tpslDeadline : uint32(block.timestamp+100)
+        });
+        vm.expectEmit(true, true, true, false);
+        emit OpenPosition(_wbtc, _wbtc, true, openOrderContext);
+        _muxAdapterProxyLong.placePositionOrder(_wbtc, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+100), true, _usdc, extra);
     }
 
     function testMuxAdapterClosePosition() public{
@@ -138,8 +147,19 @@ contract TestMuxAdapter is Test, Setup{
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_dai, _weth, false, closeOrderContext);
         _muxAdapterProxyShort.placePositionOrder(_dai, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _weth, extra);
+
+        //Test Cancel Orders
+        uint64[] memory ordersBefore = _muxAdapterProxyLong.getPendingOrderKeys();
+        uint256 startOrdersLength = ordersBefore.length;
+
+        assertEq(startOrdersLength > 0, true, "0 starting Orders");
+        _muxAdapterProxyLong.cancelOrders(ordersBefore);
+        uint64[] memory ordersAfter = _muxAdapterProxyLong.getPendingOrderKeys();
+        uint256 endOrdersLength = ordersAfter.length;
+        assertEq(endOrdersLength < startOrdersLength, true, "All Orders not cancelled");
+        assertEq(endOrdersLength == 0, true, "All Orders not cancelled");
     }
 
-    //ToDo - test cancel Orders
     //ToDo - test withdraw
+    //ToDo - test TPSL Orders
 }

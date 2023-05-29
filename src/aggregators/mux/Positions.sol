@@ -1,20 +1,13 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.19;
 
-import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
-
 import "../../interfaces/IMuxGetter.sol";
 import "./lib/LibMux.sol";
 
 import "./Storage.sol";
 import "./Types.sol";
 
-import "../../../lib/forge-std/src/console.sol";
-
 contract Positions is Storage{
-    //ToDo - look into the whole uint64 to bytes32 conversion and see if there is a way pending orders can be saved as uint64.
-    using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
-
     uint256 internal constant MAX_PENDING_ORDERS = 64;
 
     event AddPendingOrder(
@@ -29,15 +22,15 @@ contract Positions is Storage{
     event ClosePosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
 
     function _hasPendingOrder(uint64 key) internal view returns (bool) {
-        return _pendingOrders.contains(bytes32(uint256(key)));
+        return _pendingOrdersContains(key);
     }
 
-    function _getPendingOrders() internal view returns (bytes32[] memory) {
-        return _pendingOrders.values();
+    function _getPendingOrders() internal view returns (uint64[] memory) {
+        return _pendingOrders;
     }
 
     function _removePendingOrder(uint64 key) internal {
-        _pendingOrders.remove(bytes32(uint256(key)));
+        _pendingOrdersRemove(key);
         emit RemovePendingOrder(key);
     }
 
@@ -52,7 +45,7 @@ contract Positions is Storage{
             PositionOrder memory order = LibMux.decodePositionOrder(orderArray[i]);
             if(order.subAccountId == subAccountId) {
                 require(
-                    _pendingOrders.add(bytes32(uint256(order.id))),
+                    _pendingOrdersAdd(order.id),
                     "AddFailed"
                 );
                 emit AddPendingOrder(category, i, block.timestamp);
@@ -82,7 +75,7 @@ contract Positions is Storage{
     }
 
     function _placePositionOrder(PositionContext memory context) internal{
-        require(_pendingOrders.length() <= MAX_PENDING_ORDERS, "TooManyPendingOrders");
+        require(_pendingOrders.length <= MAX_PENDING_ORDERS, "TooManyPendingOrders");
 
         SubAccount memory subAccount;
         (subAccount.collateral, subAccount.size, subAccount.lastIncreasedTime, subAccount.entryPrice, subAccount.entryFunding) = IMuxGetter(_exchangeConfigs.liquidityPool).getSubAccount(context.subAccountId);
@@ -120,6 +113,45 @@ contract Positions is Storage{
         success = LibMux.cancelOrder(_exchangeConfigs, orderId);
         _removePendingOrder(orderId);
         emit CancelOrder(orderId, success);
+    }
+
+    // ======================== Utility methods ========================
+    
+    function _pendingOrdersContains(uint64 value) internal view returns(bool){
+        for(uint i = 0; i < _pendingOrders.length; i++) {
+            if (_pendingOrders[i] == value) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _pendingOrdersAdd(uint64 value) internal returns(bool){
+        uint initialLength = _pendingOrders.length;
+        _pendingOrders.push(value);
+        if (_pendingOrders.length == initialLength + 1) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    function _pendingOrdersRemove(uint64 value) internal {
+        uint i = 0;
+        bool found = false;
+        for (; i < _pendingOrders.length; i++) {
+            if (_pendingOrders[i] == value) {
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            for (; i < _pendingOrders.length-1; i++) {
+                _pendingOrders[i] = _pendingOrders[i+1];
+            }
+            _pendingOrders.pop();
+        }
     }
 
 }
