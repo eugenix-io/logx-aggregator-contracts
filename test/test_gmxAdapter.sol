@@ -16,6 +16,8 @@ import "../src/aggregators/gmx/GmxAdapter.sol";
 import "../src/aggregators/gmx/Types.sol";
 import "./test_gmxSetUp.sol";
 
+import "../lib/forge-std/src/console.sol";
+
 contract TestGmxAdapter is Test, Setup{
     IGmxProxyFactory private _proxyFactory;
     IGmxRouter private _gmxRouter;
@@ -140,9 +142,21 @@ contract TestGmxAdapter is Test, Setup{
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_dai, _weth, false, closeOrderShortContext);
         _gmxAdapterProxyShort.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 0, 64, 0, 0);
+
+        //Test Update Orders
+        bytes32[] memory ordersBefore = _gmxAdapterProxyLong.getPendingOrderKeys();
+        uint256 startOrdersLength = ordersBefore.length;
+        bytes32 orderKey = ordersBefore[0];
+        assertEq(startOrdersLength > 0, true, "0 starting Orders");
+        _gmxAdapterProxyLong.updateOrder(orderKey, 0, 0, 10000000000000000000, false);
+
+        //Test Cancel Orders
+        _gmxAdapterProxyLong.cancelOrders(ordersBefore);
+        bytes32[] memory ordersAfter = _gmxAdapterProxyLong.getPendingOrderKeys();
+        uint256 endOrdersLength = ordersAfter.length;
+        assertEq(endOrdersLength == 0, true, "All Orders not cancelled");
     }
     
-    //ToDo - test updateOrders
-    //ToDo - test cancelOrders
+    //ToDo - test withdraw
     //ToDo - test cancelTimeout Orders
 }

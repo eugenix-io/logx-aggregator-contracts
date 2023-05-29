@@ -9,6 +9,8 @@ import "../lib/LibUtils.sol";
 import "./lib/LibGmx.sol";
 import "./Storage.sol";
 
+import "../../../lib/forge-std/src/console.sol";
+
 contract Position  is Storage{
     using LibUtils for uint256;
     using MathUpgradeable for uint256;
@@ -41,6 +43,7 @@ contract Position  is Storage{
 
     function _removePendingOrder(bytes32 key) internal {
         _pendingOrders.remove(key);
+        console.log(uint256(key));
         emit RemovePendingOrder(key);
     }
 

@@ -139,4 +139,7 @@ contract TestMuxAdapter is Test, Setup{
         emit ClosePosition(_dai, _weth, false, closeOrderContext);
         _muxAdapterProxyShort.placePositionOrder(_dai, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _weth, extra);
     }
+
+    //ToDo - test cancel Orders
+    //ToDo - test withdraw
 }

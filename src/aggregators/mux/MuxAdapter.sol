@@ -2,8 +2,10 @@
 pragma solidity 0.8.19;
 
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
+import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
+import "../../../lib/openzeppelin-contracts/contracts/utils/Address.sol";
 
 import "../../interfaces/IWETH.sol";
 import "../../interfaces/IMuxOrderBook.sol";
@@ -17,8 +19,16 @@ import "../../../lib/forge-std/src/console.sol";
 
 contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, ReentrancyGuardUpgradeable{
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
+    using SafeERC20Upgradeable for IERC20Upgradeable;
+    using Address for address;
 
     address internal immutable _WETH;
+
+    event Withdraw(
+        address collateralAddress,
+        address account,
+        uint256 balance
+    );
 
     constructor(address weth) ImplementationGuard() {
         _WETH = weth;
@@ -131,6 +141,38 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         return _getPendingOrders();
     }
 
+    function withdraw() external nonReentrant {
+        _updateConfigs();
+        _cleanOrders();
+
+        uint256 ethBalance = address(this).balance;
+        if (ethBalance > 0) {
+            if (_account.collateralToken == _WETH) {
+                IWETH(_WETH).deposit{ value: ethBalance }();
+            } else {
+                AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
+            }
+        }
+        uint256 balance = IERC20Upgradeable(_account.collateralToken).balanceOf(address(this));
+        //ToDo - should we check if margin is safe if the position size != 0?
+        if (balance > 0) {
+            _transferToUser(balance);
+        }
+        emit Withdraw(
+            _account.collateralToken,
+            _account.account,
+            balance
+        );
+    }
+
+    function _transferToUser(uint256 amount) internal {
+        if (_account.collateralToken == _WETH) {
+            IWETH(_WETH).withdraw(amount);
+            Address.sendValue(payable(_account.account), amount);
+        } else {
+            IERC20Upgradeable(_account.collateralToken).safeTransfer(_account.account, amount);
+        }
+    }
 
     function _isMarketOrder(uint8 flags) internal pure returns (bool) {
         return (flags & POSITION_MARKET_ORDER) != 0;

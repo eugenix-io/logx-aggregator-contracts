@@ -23,6 +23,12 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
 
     address internal immutable _WETH;
 
+    event Withdraw(
+        address collateralAddress,
+        address account,
+        uint256 balance
+    );
+
     constructor(address weth) ImplementationGuard() {
         _WETH = weth;
     }
@@ -249,6 +255,42 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
             );
         } else {
             revert("InvalidOrderType");
+        }
+    }
+
+    function withdraw() external nonReentrant {
+        _updateConfigs();
+        _cleanOrders();
+
+        uint256 ethBalance = address(this).balance;
+        if (ethBalance > 0) {
+            if (_account.collateralToken == _WETH) {
+                IWETH(_WETH).deposit{ value: ethBalance }();
+            } else {
+                AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
+            }
+        }
+
+        uint256 balance = IERC20Upgradeable(_account.collateralToken).balanceOf(address(this));
+        //ToDo - should we check if margin is safe?
+        if (balance > 0) {
+            _transferToUser(balance);
+        }
+        // clean tpsl orders
+        _cleanTpslOrders();
+        emit Withdraw(
+            _account.collateralToken,
+            _account.account,
+            balance
+        );
+    }
+
+    function _transferToUser(uint256 amount) internal {
+        if (_account.collateralToken == _WETH) {
+            IWETH(_WETH).withdraw(amount);
+            Address.sendValue(payable(_account.account), amount);
+        } else {
+            IERC20Upgradeable(_account.collateralToken).safeTransfer(_account.account, amount);
         }
     }
 
