@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.17;
 
 contract Setup{
     address _wbtc = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f; //Arb1 Wbtc
@@ -22,8 +22,8 @@ contract Setup{
         gmxExchangeConfigs[2] = uint256(bytes32(bytes20(0x09f77E8A13De9a35a7231028187e9fD5DB8a2ACB))); //GMX Order Book address
         gmxExchangeConfigs[3] = uint256(bytes32(bytes20(0xaBBc5F99639c9B6bCb58544ddf04EFA6802F4064))); //GMX Router address
         gmxExchangeConfigs[4] = uint256(bytes32(bytes20(0x0000000000000000000000000000000000000000))); //GMX Referral Code
-        gmxExchangeConfigs[5] = 120; //GMX Referral Code
-        gmxExchangeConfigs[6] = 172800; //GMX Referral Code
+        gmxExchangeConfigs[5] = 120; //GMX market order time limit
+        gmxExchangeConfigs[6] = 172800; //GMX limit order time limit
 
         //GMX Asset config details (dummy values)
         gmxExchangeAssetConfigs.push(0); // reference Oracle

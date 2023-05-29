@@ -23,8 +23,8 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         address assetToken;
         address profitToken;
         bool isLong;
-        uint256 collateralAmount; // tokenIn.decimals
-        uint256 size; // 1e18
+        uint96 collateralAmount; // tokenIn.decimals
+        uint96 size; // 1e18
         uint96 price; // 1e18
         uint96 collateralPrice;
         uint96 assetPrice;
@@ -109,7 +109,6 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         uint256 exchangeId,
         address collateralToken,
         address assetToken,
-        address profitToken,
         bool isLong
     ) public returns (address) {
         //ToDo - verify collateral and asset IDs before we create a proxy
@@ -119,16 +118,15 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
                 msg.sender,
                 assetToken,
                 collateralToken,
-                profitToken,
                 isLong
             );
     }
 
-    function openPosition(PositionArgs calldata args, IMuxOrderBook.PositionOrderExtra calldata extra) external payable {
+    function openPosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable {
         bytes32 proxyId = _makeProxyId(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
         address proxy = _tradingProxies[proxyId];
         if (proxy == address(0)) {
-            proxy = createProxy(args.exchangeId, args.collateralToken, args.assetToken, args.profitToken, args.isLong);
+            proxy = createProxy(args.exchangeId, args.collateralToken, args.assetToken, args.isLong);
         }
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, args.collateralAmount);
@@ -146,11 +144,12 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             args.collateralPrice,
             args.deadline,
             args.isLong,
+            args.profitToken,
             extra
         );
     }
 
-    function closePosition(PositionArgs calldata args, IMuxOrderBook.PositionOrderExtra calldata extra) external payable {
+    function closePosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable {
         address proxy = _mustGetProxy(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
 
         IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
@@ -163,6 +162,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             args.collateralPrice,
             args.deadline,
             args.isLong,
+            args.profitToken,
             extra
         );
     }

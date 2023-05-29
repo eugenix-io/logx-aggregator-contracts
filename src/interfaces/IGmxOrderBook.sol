@@ -103,7 +103,10 @@ interface IGmxOrderBook {
 
     function minExecutionFee() external view returns (uint256);
 
-    function getIncreaseOrder(address _account, uint256 _orderIndex)
+    function getIncreaseOrder(
+        address _account,
+        uint256 _orderIndex
+    )
         external
         view
         returns (
@@ -118,7 +121,10 @@ interface IGmxOrderBook {
             uint256 executionFee
         );
 
-    function getDecreaseOrder(address _account, uint256 _orderIndex)
+    function getDecreaseOrder(
+        address _account,
+        uint256 _orderIndex
+    )
         external
         view
         returns (
@@ -170,6 +176,13 @@ interface IGmxOrderBook {
 
     function cancelDecreaseOrder(uint256 _orderIndex) external;
 
+    function updateIncreaseOrder(
+        uint256 _orderIndex,
+        uint256 _sizeDelta,
+        uint256 _triggerPrice,
+        bool _triggerAboveThreshold
+    ) external;
+
     function updateDecreaseOrder(
         uint256 _orderIndex,
         uint256 _collateralDelta,
@@ -178,15 +191,7 @@ interface IGmxOrderBook {
         bool _triggerAboveThreshold
     ) external;
 
-    function executeDecreaseOrder(
-        address,
-        uint256,
-        address payable
-    ) external;
+    function executeDecreaseOrder(address, uint256, address payable) external;
 
-    function executeIncreaseOrder(
-        address,
-        uint256,
-        address payable
-    ) external;
+    function executeIncreaseOrder(address, uint256, address payable) external;
 }

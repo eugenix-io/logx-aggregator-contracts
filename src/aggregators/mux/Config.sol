@@ -56,11 +56,12 @@ contract Config is Storage{
         uint256[] memory collateralValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, _account.collateralToken);
         require(collateralValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
         _collateralConfigs.id = collateralValues[uint256(TokenConfigIds.ID)].toU8();
+    }
 
-        //ToDo - we do not need anything other than profit token ID here. Should we create a new variable type for profit token ID?
-        uint256[] memory profitTokenValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, _account.profitToken);
-        require(profitTokenValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
-        _profitTokenConfigs.id = profitTokenValues[uint256(TokenConfigIds.ID)].toU8();
+    function getTokenId(address tokenAddress) internal view returns(uint8 tokenId){
+        uint256[] memory tokenValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, tokenAddress);
+        require(tokenValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
+        tokenId = tokenValues[uint256(TokenConfigIds.ID)].toU8();
     }
 
     // path  ToDo: remove me when deploy?

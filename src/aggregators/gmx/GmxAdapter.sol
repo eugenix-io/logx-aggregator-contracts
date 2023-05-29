@@ -19,6 +19,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
     using MathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
+    using EnumerableMapUpgradeable for EnumerableMapUpgradeable.Bytes32ToBytes32Map;
 
     address internal immutable _WETH;
 
@@ -70,33 +71,56 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         IGmxRouter(_exchangeConfigs.router).approvePlugin(_exchangeConfigs.positionRouter);
     }
 
-    function _cleanOrders() internal {
-        bytes32[] memory pendingKeys = _pendingOrders.values();
-        for (uint256 i = 0; i < pendingKeys.length; i++) {
-            bytes32 key = pendingKeys[i];
-            (bool notExist, ) = LibGmx.getOrder(_exchangeConfigs, key);
-            if (notExist) {
-                _removePendingOrder(key);
-            }
-        }
-    }
-
     function _isMarketOrder(uint8 flags) internal pure returns (bool) {
         return (flags & POSITION_MARKET_ORDER) != 0;
     }
 
-    /// @notice Place a openning request on GMX.
-    /// - market order => positionRouter
-    /// - limit order => orderbook
-    /// token: swapInToken(swapInAmount) => _account.collateralToken => _account.indexToken.
     function openPosition(
         address swapInToken,
         uint256 swapInAmount, // tokenIn.decimals
         uint256 minSwapOut, // collateral.decimals
         uint256 sizeUsd, // 1e18
         uint96 priceUsd, // 1e18
+        uint96 tpPriceUsd,
+        uint96 slPriceUsd,
         uint8 flags // MARKET, TRIGGER
     ) external payable onlyTraderOrFactory nonReentrant {
+
+        _updateConfigs();
+        _tryApprovePlugins();
+        _cleanOrders();
+
+        bytes32 orderKey;
+        orderKey = _openPosition(
+            swapInToken,
+            swapInAmount, // tokenIn.decimals
+            minSwapOut, // collateral.decimals
+            sizeUsd, // 1e18
+            priceUsd, // 1e18
+            flags // MARKET, TRIGGER
+        );
+
+        if (flags & POSITION_TPSL_ORDER > 0) {
+            bytes32 tpOrderKey;
+            bytes32 slOrderKey;
+            if (tpPriceUsd > 0) {
+                tpOrderKey = _closePosition(0, sizeUsd, tpPriceUsd, 0);
+            }
+            if (slPriceUsd > 0) {
+                slOrderKey = _closePosition(0, sizeUsd, slPriceUsd, 0);
+            }
+            _openTpslOrderIndexes.set(orderKey, LibGmx.encodeTpslIndex(tpOrderKey, slOrderKey));
+        }
+    }
+
+    function _openPosition(
+        address swapInToken,
+        uint256 swapInAmount, // tokenIn.decimals
+        uint256 minSwapOut, // collateral.decimals
+        uint256 sizeUsd, // 1e18
+        uint96 priceUsd, // 1e18
+        uint8 flags // MARKET, TRIGGER
+    ) internal returns(bytes32 orderKey){
 
         _updateConfigs();
         _tryApprovePlugins();
@@ -130,7 +154,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         context.amountIn = context.amountOut;
         IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.router, context.amountIn);
 
-        _openPosition(context);
+        return _openPosition(context);
     }
 
     /// @notice Place a closing request on GMX.
@@ -138,8 +162,51 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         uint256 collateralUsd, // collateral.decimals
         uint256 sizeUsd, // 1e18
         uint96 priceUsd, // 1e18
+        uint96 tpPriceUsd, // 1e18
+        uint96 slPriceUsd, // 1e18
         uint8 flags // MARKET, TRIGGER
     ) external payable onlyTraderOrFactory nonReentrant {
+
+        _updateConfigs();
+        _cleanOrders();
+
+        if (flags & POSITION_TPSL_ORDER > 0) {
+            if (_account.isLong) {
+                require(tpPriceUsd >= slPriceUsd, "WrongPrice");
+            } else {
+                require(tpPriceUsd <= slPriceUsd, "WrongPrice");
+            }
+            bytes32 tpOrderKey = _closePosition(
+                collateralUsd, // collateral.decimals
+                sizeUsd, // 1e18
+                tpPriceUsd, // 1e18
+                0 // MARKET, TRIGGER
+            );
+            _closeTpslOrderIndexes.add(tpOrderKey);
+            bytes32 slOrderKey = _closePosition(
+                collateralUsd, // collateral.decimals
+                sizeUsd, // 1e18
+                slPriceUsd, // 1e18
+                0 // MARKET, TRIGGER
+            );
+            _closeTpslOrderIndexes.add(slOrderKey);
+        } else {
+            _closePosition(
+                collateralUsd, // collateral.decimals
+                sizeUsd, // 1e18
+                priceUsd, // 1e18
+                flags // MARKET, TRIGGER
+            );
+        }
+    }
+
+    /// @notice Place a closing request on GMX.
+    function _closePosition(
+        uint256 collateralUsd, // collateral.decimals
+        uint256 sizeUsd, // 1e18
+        uint96 priceUsd, // 1e18
+        uint8 flags // MARKET, TRIGGER
+    ) internal returns (bytes32 orderKey)  {
 
         _updateConfigs();
         _cleanOrders();
@@ -151,7 +218,38 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
             isMarket: _isMarketOrder(flags),
             gmxOrderIndex: 0
         });
-        _closePosition(context);
+        return _closePosition(context);
+    }
+
+    function updateOrder(
+        bytes32 orderKey,
+        uint256 collateralDelta,
+        uint256 sizeDelta,
+        uint256 triggerPrice,
+        bool triggerAboveThreshold
+    ) external onlyTraderOrFactory nonReentrant {
+        _updateConfigs();
+        _cleanOrders();
+
+        LibGmx.OrderHistory memory history = LibGmx.decodeOrderHistoryKey(orderKey);
+        if (history.receiver == LibGmx.OrderReceiver.OB_INC) {
+            IGmxOrderBook(_exchangeConfigs.orderBook).updateIncreaseOrder(
+                history.index,
+                sizeDelta,
+                triggerPrice,
+                triggerAboveThreshold
+            );
+        } else if (history.receiver == LibGmx.OrderReceiver.OB_DEC) {
+            IGmxOrderBook(_exchangeConfigs.orderBook).updateDecreaseOrder(
+                history.index,
+                collateralDelta,
+                sizeDelta,
+                triggerPrice,
+                triggerAboveThreshold
+            );
+        } else {
+            revert("InvalidOrderType");
+        }
     }
 
     function cancelOrders(bytes32[] memory keys) external onlyTraderOrFactory nonReentrant {
@@ -176,7 +274,8 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         uint256 marketTimeout = _exchangeConfigs.marketOrderTimeoutSeconds;
         uint256 limitTimeout = _exchangeConfigs.limitOrderTimeoutSeconds;
         for (uint256 i = 0; i < keys.length; i++) {
-            LibGmx.OrderHistory memory history = LibGmx.decodeOrderHistoryKey(keys[i]);
+            bytes32 orderKey = keys[i];
+            LibGmx.OrderHistory memory history = LibGmx.decodeOrderHistoryKey(orderKey);
             uint256 elapsed = _now - history.timestamp;
             if (
                 ((history.receiver == LibGmx.OrderReceiver.PR_INC || history.receiver == LibGmx.OrderReceiver.PR_DEC) &&
@@ -184,8 +283,46 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
                 ((history.receiver == LibGmx.OrderReceiver.OB_INC || history.receiver == LibGmx.OrderReceiver.OB_DEC) &&
                     elapsed >= limitTimeout)
             ) {
-                _cancelOrder(keys[i]);
+                if (_cancelOrder(orderKey)) {
+                    _cancelTpslOrders(orderKey);
+                }
             }
+        }
+    }
+
+    function _cleanOrders() internal {
+        bytes32[] memory pendingKeys = _pendingOrders.values();
+        for (uint256 i = 0; i < pendingKeys.length; i++) {
+            bytes32 key = pendingKeys[i];
+            (bool notExist, ) = LibGmx.getOrder(_exchangeConfigs, key);
+            if (notExist) {
+                _removePendingOrder(key);
+            }
+        }
+    }
+
+    function _cleanTpslOrders() internal {
+        // open tpsl orders
+        uint256 openLength = _openTpslOrderIndexes.length();
+        bytes32[] memory openKeys = new bytes32[](openLength);
+        for (uint256 i = 0; i < openLength; i++) {
+            (openKeys[i], ) = _openTpslOrderIndexes.at(i);
+        }
+        for (uint256 i = 0; i < openLength; i++) {
+            // clean all tpsl orders paired with orders that already filled
+            if (!_pendingOrders.contains(openKeys[i])) {
+                _cancelTpslOrders(openKeys[i]);
+            }
+        }
+        // close tpsl orders
+        uint256 closeLength = _closeTpslOrderIndexes.length();
+        bytes32[] memory closeKeys = new bytes32[](closeLength);
+        for (uint256 i = 0; i < closeLength; i++) {
+            closeKeys[i] = _closeTpslOrderIndexes.at(i);
+        }
+        for (uint256 i = 0; i < closeLength; i++) {
+            // clean all tpsl orders paired with orders that already filled
+            _cancelOrder(closeKeys[i]);
         }
     }
 }

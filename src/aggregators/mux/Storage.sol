@@ -19,7 +19,6 @@ contract Storage is Initializable{
     ExchangeConfigs internal _exchangeConfigs;
     TokenConfigs internal _assetConfigs;
     TokenConfigs internal _collateralConfigs;
-    TokenConfigs internal _profitTokenConfigs;
 
     EnumerableSetUpgradeable.Bytes32Set internal _pendingOrders;
 

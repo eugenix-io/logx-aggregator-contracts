@@ -15,7 +15,6 @@ contract MuxProxyBeacon is  MuxStorage, IBeacon{
         address proxy,
         address assetToken,
         address collateralToken,
-        address profitToken,
         bool isLong
     );
 
@@ -56,10 +55,8 @@ contract MuxProxyBeacon is  MuxStorage, IBeacon{
         address account,
         address assetToken,
         address collateralToken,
-        address profitToken,
         bool isLong
     ) internal returns (address) {
-        // require(exchangeId) // isValid
         bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, assetToken, isLong);
         require(_tradingProxies[proxyId] == address(0), "AlreadyCreated");
         bytes memory initData = abi.encodeWithSignature(
@@ -68,14 +65,13 @@ contract MuxProxyBeacon is  MuxStorage, IBeacon{
             account,
             collateralToken,
             assetToken,
-            profitToken,
             isLong
         );
         bytes memory bytecode = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(address(this), initData));
         address proxy = _createProxy(exchangeId, proxyId, bytecode);
         _tradingProxies[proxyId] = proxy;
         _ownedProxies[account].push(proxy);
-        emit CreateProxy(exchangeId, proxyId, account, proxy, assetToken, collateralToken, profitToken,isLong);
+        emit CreateProxy(exchangeId, proxyId, account, proxy, assetToken, collateralToken, isLong);
         return proxy;
     }
 

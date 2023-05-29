@@ -25,8 +25,11 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         address tokenIn;
         uint256 amountIn; // tokenIn.decimals
         uint256 minOut; // collateral.decimals
+        uint256 borrow; // collateral.decimals
         uint256 sizeUsd; // 1e18
         uint96 priceUsd; // 1e18
+        uint96 tpPriceUsd; // 1e18
+        uint96 slPriceUsd; // 1e18
         uint8 flags; // MARKET, TRIGGER
         bytes32 referralCode;
     }
@@ -39,8 +42,18 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         uint256 collateralUsd; // collateral.decimals
         uint256 sizeUsd; // 1e18
         uint96 priceUsd; // 1e18
+        uint96 tpPriceUsd; // 1e18
+        uint96 slPriceUsd; // 1e18
         uint8 flags; // MARKET, TRIGGER
         bytes32 referralCode;
+    }
+
+    struct OrderParams {
+        bytes32 orderKey;
+        uint256 collateralDelta;
+        uint256 sizeDelta;
+        uint256 triggerPrice;
+        bool triggerAboveThreshold;
     }
 
     event SetReferralCode(bytes32 referralCode);
@@ -150,6 +163,8 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
             args.minOut,
             args.sizeUsd,
             args.priceUsd,
+            args.tpPriceUsd,
+            args.slPriceUsd,
             args.flags
         );
     }
@@ -161,6 +176,8 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
             args.collateralUsd,
             args.sizeUsd,
             args.priceUsd,
+            args.tpPriceUsd,
+            args.slPriceUsd,
             args.flags
         );
     }
@@ -173,6 +190,37 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         bytes32[] calldata keys
     ) external {
         IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).cancelOrders(keys);
+    }
+
+    function updateOrder(
+        uint256 projectId,
+        address collateralToken,
+        address assetToken,
+        bool isLong,
+        OrderParams[] memory orderParams
+    ) external {
+        for (uint256 i = 0; i < orderParams.length; i++) {
+            IGmxAggregator(_mustGetProxy(projectId, msg.sender, collateralToken, assetToken, isLong)).updateOrder(
+                orderParams[i].orderKey,
+                orderParams[i].collateralDelta,
+                orderParams[i].sizeDelta,
+                orderParams[i].triggerPrice,
+                orderParams[i].triggerAboveThreshold
+            );
+        }
+    }
+
+    // ======================== Methods called by maintainer ========================
+
+    function cancelTimeoutOrders(
+        uint256 projectId,
+        address account,
+        address collateralToken,
+        address assetToken,
+        bool isLong,
+        bytes32[] calldata keys
+    ) external {
+        IGmxAggregator(_mustGetProxy(projectId, account, collateralToken, assetToken, isLong)).cancelTimeoutOrders(keys);
     }
 
     // ======================== Utility methods ========================

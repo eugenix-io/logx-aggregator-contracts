@@ -43,6 +43,8 @@ interface IMuxProxyFactory {
     function initialize(address weth_) external;
 
     function weth() external view returns (address);
+    
+    function implementation() external view returns(address);
 
     function getImplementationAddress(uint256 exchangeId) external view returns(address);
 
@@ -68,9 +70,9 @@ interface IMuxProxyFactory {
 
     function createProxy(uint256 exchangeId, address collateralToken, address assetToken, address profitToken, bool isLong) external returns (address);
 
-    function openPosition(OpenPositionArgs calldata args) external payable;
+    function openPosition(OpenPositionArgs calldata args, PositionOrderExtra memory extra) external payable;
 
-    function closePosition(ClosePositionArgs calldata args) external payable;
+    function closePosition(ClosePositionArgs calldata args, PositionOrderExtra memory extra) external payable;
 
     function cancelOrders(uint256 exchangeId, address collateralToken, address assetToken, bool isLong, bytes32[] calldata keys) external;
 }

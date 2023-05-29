@@ -13,6 +13,8 @@ import "./Storage.sol";
 import "./Config.sol";
 import "./Positions.sol";
 
+import "../../../lib/forge-std/src/console.sol";
+
 contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, ReentrancyGuardUpgradeable{
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
 
@@ -39,28 +41,31 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         address account,
         address collateralToken,
         address assetToken,
-        address profitToken,
         bool isLong
     ) external initializer onlyDelegateCall {
         require(exchangeId == EXCHANGE_ID, "Invalidexchange");
 
         _factory = msg.sender;
+
         _account.account = account;
         _account.collateralToken = collateralToken;
         _account.indexToken = assetToken;
-        _account.profitToken = profitToken;
         _account.isLong = isLong;
         _account.collateralDecimals = IERC20MetadataUpgradeable(collateralToken).decimals();
         _updateConfigs();
-        _subAccountId = encodeSubAccountId(account, isLong);
+        _subAccountId = encodeSubAccountId(isLong);
     }
 
-    function encodeSubAccountId(address account, bool isLong) internal view returns (bytes32)
+    function accountState() external view returns(AccountState memory){
+        return _account;
+    }
+
+    function encodeSubAccountId(bool isLong) internal view returns (bytes32)
     {
         uint8 collateralId = _collateralConfigs.id;
         uint8 assetId = _assetConfigs.id;
         return bytes32(
-            (uint256(uint160(account)) << 96) |
+            (uint256(uint160(address(this))) << 96) |
             (uint256(collateralId) << 88) |
             (uint256(assetId) << 80) |
             (uint256(isLong ? 1 : 0) << 79)
@@ -80,15 +85,19 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         uint96 collateralPrice, // 1e18
         uint32 deadline,
         bool isLong,
-        IMuxOrderBook.PositionOrderExtra memory extra
+        address profitToken,
+        PositionOrderExtra memory extra
     ) external payable onlyTraderOrFactory nonReentrant {
 
         _updateConfigs();
         _cleanOrders();
 
+        uint8 profitTokenId = getTokenId(profitToken);
         //We will not be consider the extra.tpslProfitTokenId sent by the user.
         //We will be using profitTokenAddress supplied during the time of proxy creation
-        extra.tpslProfitTokenId = _profitTokenConfigs.id;
+        if(!isLong){
+            extra.tpslProfitTokenId = profitTokenId;
+        }
 
         PositionContext memory context = PositionContext({
             collateralAmount : collateralAmount,
@@ -97,7 +106,7 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
             flags : flags,
             assetPrice : assetPrice,
             collateralPrice : collateralPrice,
-            profitTokenId : _profitTokenConfigs.id,
+            profitTokenId : profitTokenId,
             subAccountId : _subAccountId,
             deadline : deadline,
             isLong : isLong,

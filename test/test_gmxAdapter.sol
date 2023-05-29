@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.17;
 
 import "../lib/forge-std/src/Test.sol";
 
@@ -14,7 +14,7 @@ import "../src/interfaces/IGmxVault.sol";
 
 import "../src/aggregators/gmx/GmxAdapter.sol";
 import "../src/aggregators/gmx/Types.sol";
-import "./test_setUp.sol";
+import "./test_gmxSetUp.sol";
 
 contract TestGmxAdapter is Test, Setup{
     IGmxProxyFactory private _proxyFactory;
@@ -100,7 +100,7 @@ contract TestGmxAdapter is Test, Setup{
         _gmxAdapterProxyShort = IGmxAggregator(proxyShort);
     }
 
-    function testInitialization() public{
+    function testGmxAdapterInitialization() public{
         AccountState memory currentAccountLong = _gmxAdapterProxyLong.accountState();
         assertEq(currentAccountLong.account, _account);
         assertEq(currentAccountLong.collateralToken, _wbtc);
@@ -118,30 +118,31 @@ contract TestGmxAdapter is Test, Setup{
         assertEq(currentAccountShort.collateralDecimals, 18);
     }
 
-    function testOpenPosition() public{
+    function testGmxAdapterOpenPosition() public{
         OpenPositionContext memory openOrderLongContext;
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_wbtc, _wbtc, true, openOrderLongContext);
-        _gmxAdapterProxyLong.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 0, 64);
+        _gmxAdapterProxyLong.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 0, 64, 0, 0);
 
         OpenPositionContext memory openOrderShortContext;
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_dai, _weth, false, openOrderShortContext);
-        _gmxAdapterProxyShort.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 1900000000000000000000, 0);
+        _gmxAdapterProxyShort.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 1900000000000000000000, 0, 0, 0);
     }
 
-    function testClosePosition() public {
+    function testGmxAdapterClosePosition() public {
         ClosePositionContext memory closeOrderLongContext;
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_wbtc, _wbtc, true, closeOrderLongContext);
-        _gmxAdapterProxyLong.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 1700000000000000000000, 0);
+        _gmxAdapterProxyLong.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 1700000000000000000000, 0, 0, 0);
 
         ClosePositionContext memory closeOrderShortContext;
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_dai, _weth, false, closeOrderShortContext);
-        _gmxAdapterProxyShort.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 0, 64);
+        _gmxAdapterProxyShort.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 0, 64, 0, 0);
     }
     
-    //ToDo - teset cancelOrders
+    //ToDo - test updateOrders
+    //ToDo - test cancelOrders
     //ToDo - test cancelTimeout Orders
 }

@@ -9,6 +9,8 @@ import "./lib/LibMux.sol";
 import "./Storage.sol";
 import "./Types.sol";
 
+import "../../../lib/forge-std/src/console.sol";
+
 contract Positions is Storage{
     //ToDo - look into the whole uint64 to bytes32 conversion and see if there is a way pending orders can be saved as uint64.
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
@@ -60,7 +62,7 @@ contract Positions is Storage{
     }
 
     function _isMarginSafe(SubAccount memory subAccount, uint96 collateralPrice, uint96 assetPrice, bool isLong, bool isOpen) internal view returns(bool){
-        //ToDo - double check if the following calculations are solid.
+        //ToDo - double check if the following calculations are solid - compare them with contracts on MUX as well
         if(subAccount.size == 0){
             return true;
         }
@@ -85,7 +87,7 @@ contract Positions is Storage{
         SubAccount memory subAccount;
         (subAccount.collateral, subAccount.size, subAccount.lastIncreasedTime, subAccount.entryPrice, subAccount.entryFunding) = IMuxGetter(_exchangeConfigs.liquidityPool).getSubAccount(context.subAccountId);
 
-        bool isOpen = (context.flags & POSITION_OPEN != 0) ? true : false;
+        bool isOpen = ((context.flags & POSITION_OPEN) != 0) ? true : false;
 
         require(
             _isMarginSafe(
@@ -104,8 +106,13 @@ contract Positions is Storage{
 
         require(endOrderCount > startOrderCount, "Order not recorded on MUX");
 
-        _addPendingOrder(LibMux.OrderCategory.OPEN, startOrderCount, endOrderCount, context.subAccountId);
-        emit OpenPosition(_account.collateralToken, _account.indexToken, context.isLong, context);
+        if(isOpen){
+            _addPendingOrder(LibMux.OrderCategory.OPEN, startOrderCount, endOrderCount, context.subAccountId);
+            emit OpenPosition(_account.collateralToken, _account.indexToken, context.isLong, context);
+        }else{
+            _addPendingOrder(LibMux.OrderCategory.CLOSE, startOrderCount, endOrderCount, context.subAccountId);
+            emit ClosePosition(_account.collateralToken, _account.indexToken, context.isLong, context);
+        }
     }
 
     function _cancelOrder(uint64 orderId) internal returns(bool success){

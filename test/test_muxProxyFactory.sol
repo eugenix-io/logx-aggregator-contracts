@@ -2,20 +2,20 @@
 pragma solidity ^0.8.17;
 
 import "../lib/forge-std/src/Test.sol";
-import "../src/gmxProxyFactory/GmxProxyFactory.sol";
+import "../src/muxProxyFactory/muxProxyFactory.sol";
 import "../lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol";
-import "./test_gmxSetUp.sol";
+import "./test_muxSetUp.sol";
 
 contract TestProxyFactory is Test, Setup{
 
-    //Note test for createProxy done in gmxAdapter tests while initializing the contracts.
+    //Note test for createProxy done in muxAdapter tests while initializing the contracts.
 
-    GmxProxyFactory private _proxyFactory;
+    MuxProxyFactory private _proxyFactory;
     
     function setUp() public {
-        _proxyFactory = new GmxProxyFactory();
+        _proxyFactory = new MuxProxyFactory();
     
-        setUpGmxConfig();
+        setUpMuxConfig();
 
         _proxyFactory.initialize(_weth);
         _proxyFactory.upgradeTo(_exchangeId, _implementation);
@@ -24,12 +24,12 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setMaintainer(_maintainer, true);
     }
 
-    function testGmxInitialize() public{
+    function testmuxInitialize() public{
         assertEq(_proxyFactory.weth(), _weth, "WETH was not correctly initialized");
         assertEq(_proxyFactory.owner(), address(this), "Owner was not correctly initialized");
     }
 
-    function testGmxUpgradeTo() public{
+    function testmuxUpgradeTo() public{
         assertEq(_proxyFactory.getImplementationAddress(_exchangeId), _implementation, "Incorrect implementation was set");
 
         //Address which is not owner of contract should not be able to call the upgradeTo function
@@ -38,11 +38,11 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.upgradeTo(_exchangeId, _implementation);
     }
 
-    function tesGmxtWeth() public{
+    function tesmuxtWeth() public{
         assertEq(_proxyFactory.weth(), _weth, "WETH was not correctly returned");
     }
 
-    function testGmxSetMaintainer() public{
+    function testmuxSetMaintainer() public{
         assertEq(_proxyFactory.getMainatinerStatus(_maintainer), true);
 
         //Address which is not owner of contract should not be able to call the setMaintainer function
@@ -51,34 +51,34 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setMaintainer(_maintainer, true);
     }
 
-    function testGmxSetExchangeConfig() public{
-        _proxyFactory.setExchangeConfig(_exchangeId, gmxExchangeConfigs);
-        assertEq(_proxyFactory.getExchangeConfig(_exchangeId), gmxExchangeConfigs);
+    function testmuxSetExchangeConfig() public{
+        _proxyFactory.setExchangeConfig(_exchangeId, muxExchangeConfigs);
+        assertEq(_proxyFactory.getExchangeConfig(_exchangeId), muxExchangeConfigs);
 
         //Maintainer should be able to call the function
         vm.prank(_maintainer);
-        _proxyFactory.setExchangeConfig(_exchangeId + 1, gmxExchangeConfigs);
-        assertEq(_proxyFactory.getExchangeConfig(_exchangeId + 1), gmxExchangeConfigs);
+        _proxyFactory.setExchangeConfig(_exchangeId + 1, muxExchangeConfigs);
+        assertEq(_proxyFactory.getExchangeConfig(_exchangeId + 1), muxExchangeConfigs);
 
         //Address which is not owner or maintiner of contract should not be able to call the setExchangeConfig function
         vm.expectRevert("OnlyMaintainerOrAbove");
         vm.prank(address(0));
-        _proxyFactory.setExchangeConfig(_exchangeId, gmxExchangeConfigs);
+        _proxyFactory.setExchangeConfig(_exchangeId, muxExchangeConfigs);
     }
 
-    function testGmxSetExchangeAssetConfig() public{
-        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
-        assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId, _wbtc), gmxExchangeAssetConfigs);
+    function testmuxSetExchangeAssetConfig() public{
+        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, muxExchangeAssetConfigs_btc);
+        assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId, _wbtc), muxExchangeAssetConfigs_btc);
 
         //Maintainer should be able to call the function
         vm.prank(_maintainer);
-        _proxyFactory.setExchangeAssetConfig(_exchangeId + 1, _weth, gmxExchangeAssetConfigs);
-        assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId + 1, _weth), gmxExchangeAssetConfigs);
+        _proxyFactory.setExchangeAssetConfig(_exchangeId + 1, _weth, muxExchangeAssetConfigs_weth);
+        assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId + 1, _weth), muxExchangeAssetConfigs_weth);
 
         //Address which is not owner or maintiner of contract should not be able to call the getExchangeAssetConfig function
         vm.expectRevert("OnlyMaintainerOrAbove");
         vm.prank(address(0));
-        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
+        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, muxExchangeAssetConfigs_btc);
     }
 
     function testGetConfigVersions() public{
@@ -91,8 +91,8 @@ contract TestProxyFactory is Test, Setup{
         assertEq(assetConfigVersion, 0);
 
         //Updating asset and exchange config once again to check if the version is increasing
-        _proxyFactory.setExchangeConfig(_exchangeId, gmxExchangeConfigs);
-        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
+        _proxyFactory.setExchangeConfig(_exchangeId, muxExchangeConfigs);
+        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, muxExchangeAssetConfigs_btc);
 
         (exchangeConfigVersion, assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId, _wbtc);
         assertEq(exchangeConfigVersion, 1);

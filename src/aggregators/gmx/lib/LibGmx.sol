@@ -245,4 +245,25 @@ library LibGmx {
             bytes32(uint256(0) << 88) | // 256 - 4 - 4 - 64 - 96
             bytes32(uint256(timestamp));
     }
+
+    function encodeTpslIndex(bytes32 tpOrderKey, bytes32 slOrderKey) internal pure returns (bytes32) {
+        //            252          248                184
+        // +------------+------------+------------------+
+        // | category 4 | receiver 4 | gmxOrderIndex 64 |
+        // +------------+------------+------------------+
+        // store head of orderkey without timestamp, since tpsl orders should have the same timestamp as the open order.
+        return bytes32(bytes9(tpOrderKey)) | (bytes32(bytes9(slOrderKey)) >> 128);
+    }
+
+    function decodeTpslIndex(
+        bytes32 orderKey,
+        bytes32 tpslIndex
+    ) internal pure returns (bytes32 tpOrderKey, bytes32 slOrderKey) {
+        bytes32 timestamp = bytes32(uint256(uint88(uint256(orderKey))));
+        // timestamp of all tpsl orders (main +tp +sl) are same
+        tpOrderKey = bytes32(bytes16(tpslIndex));
+        tpOrderKey = tpOrderKey != bytes32(0) ? tpOrderKey | timestamp : tpOrderKey;
+        slOrderKey = (tpslIndex << 128);
+        slOrderKey = slOrderKey != bytes32(0) ? slOrderKey | timestamp : slOrderKey;
+    }
 }

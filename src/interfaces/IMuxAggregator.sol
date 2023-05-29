@@ -18,15 +18,16 @@ interface IMuxAggregator {
 
     function placePositionOrder(
         address collateralToken,
-        uint256 collateralAmount, // tokenIn.decimals
-        uint256 size, // 1e18
+        uint96 collateralAmount, // tokenIn.decimals
+        uint96 size, // 1e18
         uint96 price, // 1e18
         uint8 flags, // MARKET, TRIGGER
         uint96 assetPrice, // 1e18
         uint96 collateralPrice, // 1e18
         uint32 deadline,
         bool isLong,
-        IMuxOrderBook.PositionOrderExtra memory extra
+        address profitToken,
+        PositionOrderExtra memory extra
     ) external payable;
     
     function cancelOrders(uint64[] calldata keys) external;

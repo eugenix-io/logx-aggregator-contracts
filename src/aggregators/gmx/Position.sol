@@ -14,6 +14,7 @@ contract Position  is Storage{
     using MathUpgradeable for uint256;
     using SafeMathUpgradeable for uint256;
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
+    using EnumerableMapUpgradeable for EnumerableMapUpgradeable.Bytes32ToBytes32Map;
 
     uint256 internal constant GMX_DECIMAL_MULTIPLIER = 1e12; // 30 - 18
     uint256 internal constant MAX_PENDING_ORDERS = 64;
@@ -50,12 +51,10 @@ contract Position  is Storage{
     function _addPendingOrder(
         LibGmx.OrderCategory category,
         LibGmx.OrderReceiver receiver
-    ) internal returns (uint256 index) {
+    ) internal returns (uint256 index, bytes32 orderKey) {
         index = LibGmx.getOrderIndex(_exchangeConfigs, receiver);
-        require(
-            _pendingOrders.add(LibGmx.encodeOrderHistoryKey(category, receiver, index, block.timestamp)),
-            "AddFailed"
-        );
+        orderKey = LibGmx.encodeOrderHistoryKey(category, receiver, index, block.timestamp);
+        require(_pendingOrders.add(orderKey), "AddFailed");
         emit AddPendingOrder(category, receiver, index, block.timestamp);
     }
 
@@ -121,7 +120,7 @@ contract Position  is Storage{
         return accountValue >= (position.sizeUsd + deltaSizeUsd).rate(threshold).max(liquidationFeeUsd);
     }
 
-    function _openPosition(OpenPositionContext memory context) internal {
+    function _openPosition(OpenPositionContext memory context) internal returns(bytes32 orderKey){
         require(_pendingOrders.length() <= MAX_PENDING_ORDERS, "TooManyPendingOrders");
         IGmxVault.Position memory position = _getGmxPosition();
         require(
@@ -149,7 +148,7 @@ contract Position  is Storage{
                 _exchangeConfigs.referralCode,
                 address(0)
             );
-            context.gmxOrderIndex = _addPendingOrder(
+            (context.gmxOrderIndex, orderKey) = _addPendingOrder(
                 LibGmx.OrderCategory.OPEN,
                 LibGmx.OrderReceiver.PR_INC
             );
@@ -167,7 +166,7 @@ contract Position  is Storage{
                 context.executionFee,
                 false
             );
-            context.gmxOrderIndex = _addPendingOrder(
+            (context.gmxOrderIndex, orderKey) = _addPendingOrder(
                 LibGmx.OrderCategory.OPEN,
                 LibGmx.OrderReceiver.OB_INC
             );
@@ -175,7 +174,7 @@ contract Position  is Storage{
         emit OpenPosition(_account.collateralToken, _account.indexToken, _account.isLong, context);
     }
 
-    function _closePosition(ClosePositionContext memory context) internal {
+    function _closePosition(ClosePositionContext memory context) internal returns(bytes32 orderKey){
         require(_pendingOrders.length() <= MAX_PENDING_ORDERS * 2, "TooManyPendingOrders");
 
         IGmxVault.Position memory position = _getGmxPosition();
@@ -208,7 +207,7 @@ contract Position  is Storage{
                 false,
                 address(0)
             );
-            context.gmxOrderIndex = _addPendingOrder(LibGmx.OrderCategory.CLOSE, LibGmx.OrderReceiver.PR_DEC);
+            (context.gmxOrderIndex, orderKey) = _addPendingOrder(LibGmx.OrderCategory.CLOSE, LibGmx.OrderReceiver.PR_DEC);
         } else {
             uint256 oralcePrice = LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong);
             uint256 priceUsd = context.priceUsd;
@@ -221,7 +220,7 @@ contract Position  is Storage{
                 priceUsd,
                 priceUsd >= oralcePrice
             );
-            context.gmxOrderIndex = _addPendingOrder(LibGmx.OrderCategory.CLOSE, LibGmx.OrderReceiver.OB_DEC);
+            (context.gmxOrderIndex, orderKey) = _addPendingOrder(LibGmx.OrderCategory.CLOSE, LibGmx.OrderReceiver.OB_DEC);
         }
         emit ClosePosition(_account.collateralToken, _account.indexToken, _account.isLong, context);
     }
@@ -231,5 +230,18 @@ contract Position  is Storage{
         success = LibGmx.cancelOrder(_exchangeConfigs, key);
         _removePendingOrder(key);
         emit CancelOrder(key, success);
+    }
+
+    function _cancelTpslOrders(bytes32 orderKey) internal returns (bool success) {
+        (bool exists, bytes32 tpslIndex) = _openTpslOrderIndexes.tryGet(orderKey);
+        if (!exists) {
+            success = true;
+        } else {
+            (bytes32 tpOrderKey, bytes32 slOrderKey) = LibGmx.decodeTpslIndex(orderKey, tpslIndex);
+            if (_cancelOrder(tpOrderKey) && _cancelOrder(slOrderKey)) {
+                _openTpslOrderIndexes.remove(orderKey);
+                success = true;
+            }
+        }
     }
 }

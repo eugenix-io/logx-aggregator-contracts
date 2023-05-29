@@ -3,6 +3,7 @@ pragma solidity 0.8.19;
 
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableSetUpgradeable.sol";
+import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/structs/EnumerableMapUpgradeable.sol";
 
 import "./Types.sol";
 
@@ -20,10 +21,14 @@ contract Storage is Initializable {
 
     AccountState internal _account;
     EnumerableSetUpgradeable.Bytes32Set internal _pendingOrders;
+    EnumerableMapUpgradeable.Bytes32ToBytes32Map internal _openTpslOrderIndexes;
+    EnumerableSetUpgradeable.Bytes32Set internal _closeTpslOrderIndexes;
+
 
     //ToDo - Do we need these gaps?
     //bytes32[50] private __gaps;
 
     //Position Market order constant flag
     uint8 constant POSITION_MARKET_ORDER = 0x40;
+    uint8 constant POSITION_TPSL_ORDER = 0x08;
 }

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.19;
 
-import "../../interfaces/IMuxOrderBook.sol";
-
 enum ExchangeConfigIds {
     LIQUIDITY_POOL,
     ORDER_BOOK,
@@ -51,7 +49,7 @@ struct PositionContext {
     bytes32 subAccountId;
     uint32 deadline;
     bool isLong;
-    IMuxOrderBook.PositionOrderExtra extra;
+    PositionOrderExtra extra;
 }
 
 struct ClosePositionContext {
@@ -129,14 +127,6 @@ struct Asset {
     uint128 shortCumulativeFunding; // Σ_t fundingRate_t * indexPrice_t
 }
 
-struct MuxPositionOrderExtra {
-    // tp/sl strategy
-    uint96 tpPrice; // take-profit price. decimals = 18. only valid when flags.POSITION_TPSL_STRATEGY.
-    uint96 slPrice; // stop-loss price. decimals = 18. only valid when flags.POSITION_TPSL_STRATEGY.
-    uint8 tpslProfitTokenId; // only valid when flags.POSITION_TPSL_STRATEGY.
-    uint32 tpslDeadline; // only valid when flags.POSITION_TPSL_STRATEGY.
-}
-
 struct PositionOrder {
     uint64 id;
     bytes32 subAccountId; // 160 + 8 + 8 + 8 = 184
@@ -147,4 +137,12 @@ struct PositionOrder {
     uint8 flags;
     uint32 placeOrderTime; // 1e0
     uint24 expire10s; // 10 seconds. deadline = placeOrderTime + expire * 10
+}
+
+struct PositionOrderExtra {
+    // tp/sl strategy
+    uint96 tpPrice; // take-profit price. decimals = 18. only valid when flags.POSITION_TPSL_STRATEGY.
+    uint96 slPrice; // stop-loss price. decimals = 18. only valid when flags.POSITION_TPSL_STRATEGY.
+    uint8 tpslProfitTokenId; // only valid when flags.POSITION_TPSL_STRATEGY.
+    uint32 tpslDeadline; // only valid when flags.POSITION_TPSL_STRATEGY.
 }
