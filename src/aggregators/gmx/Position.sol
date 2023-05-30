@@ -136,6 +136,7 @@ contract Position  is Storage{
         address[] memory path = new address[](1);
         path[0] = _account.collateralToken;
         if (context.isMarket) {
+            context.executionFee = LibGmx.getPrExecutionFee(_exchangeConfigs);
             IGmxPositionRouter(_exchangeConfigs.positionRouter).createIncreasePosition{ value: context.executionFee }(
                 path,
                 _account.indexToken,
@@ -153,6 +154,7 @@ contract Position  is Storage{
                 LibGmx.OrderReceiver.PR_INC
             );
         } else {
+            context.executionFee = LibGmx.getObExecutionFee(_exchangeConfigs);
             IGmxOrderBook(_exchangeConfigs.orderBook).createIncreaseOrder{ value: context.executionFee }(
                 path,
                 context.amountIn,
@@ -189,12 +191,12 @@ contract Position  is Storage{
             "MmMarginUnsafe"
         );
 
-        uint256 executionFee = msg.value;
         address[] memory path = new address[](1);
         path[0] = _account.collateralToken;
         if (context.isMarket) {
+            context.executionFee = LibGmx.getPrExecutionFee(_exchangeConfigs);
             context.priceUsd = _account.isLong ? 0 : type(uint256).max;
-            IGmxPositionRouter(_exchangeConfigs.positionRouter).createDecreasePosition{ value: executionFee }(
+            IGmxPositionRouter(_exchangeConfigs.positionRouter).createDecreasePosition{ value: context.executionFee }(
                 path, // no swap for collateral
                 _account.indexToken,
                 context.collateralUsd,
@@ -203,15 +205,16 @@ contract Position  is Storage{
                 address(this),
                 context.priceUsd,
                 0,
-                msg.value,
+                context.executionFee,
                 false,
                 address(0)
             );
             (context.gmxOrderIndex, orderKey) = _addPendingOrder(LibGmx.OrderCategory.CLOSE, LibGmx.OrderReceiver.PR_DEC);
         } else {
+            context.executionFee = LibGmx.getObExecutionFee(_exchangeConfigs);
             uint256 oralcePrice = LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong);
             uint256 priceUsd = context.priceUsd;
-            IGmxOrderBook(_exchangeConfigs.orderBook).createDecreaseOrder{ value: executionFee }(
+            IGmxOrderBook(_exchangeConfigs.orderBook).createDecreaseOrder{ value: context.executionFee }(
                 _account.indexToken,
                 context.sizeUsd,
                 _account.collateralToken,

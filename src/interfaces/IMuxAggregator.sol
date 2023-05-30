@@ -30,6 +30,8 @@ interface IMuxAggregator {
         PositionOrderExtra memory extra
     ) external payable;
     
+    function withdraw() external;
+
     function cancelOrders(uint64[] calldata keys) external;
 
     function getPendingOrderKeys() external view returns (uint64[] memory);

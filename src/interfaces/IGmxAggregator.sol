@@ -42,6 +42,8 @@ interface IGmxAggregator {
         bool triggerAboveThreshold
     ) external;
 
+    function withdraw() external;
+
     function cancelOrders(bytes32[] calldata keys) external;
 
     function cancelTimeoutOrders(bytes32[] calldata keys) external;

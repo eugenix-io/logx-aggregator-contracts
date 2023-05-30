@@ -24,6 +24,11 @@ contract TestMuxAdapter is Test, Setup{
 
     event OpenPosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
     event ClosePosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
+    event Withdraw(
+        address collateralAddress,
+        address account,
+        uint256 balance
+    );
 
     function setUp() public {
         _muxAdapterInstance = new MuxAdapter(_weth);
@@ -160,6 +165,9 @@ contract TestMuxAdapter is Test, Setup{
         assertEq(endOrdersLength == 0, true, "All Orders not cancelled");
     }
 
-    //ToDo - test withdraw
-    //ToDo - test TPSL Orders
+    function testMuxAdapterWithdraw() public{
+        vm.expectEmit(true, true, true, false);
+        emit Withdraw(_wbtc, _account, 0);
+        _muxAdapterProxyLong.withdraw();
+    }
 }

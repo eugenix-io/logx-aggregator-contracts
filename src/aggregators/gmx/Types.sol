@@ -72,4 +72,5 @@ struct ClosePositionContext {
     uint256 priceUsd;
     bool isMarket;
     uint256 gmxOrderIndex;
+    uint256 executionFee;
 }

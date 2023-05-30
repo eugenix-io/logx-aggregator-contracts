@@ -38,6 +38,11 @@ contract TestGmxAdapter is Test, Setup{
         uint256 index,
         uint256 timestamp
     );
+    event Withdraw(
+        address collateralAddress,
+        address account,
+        uint256 balance
+    );
 
     function setUp() public {
         _gmxAdapterInstance = new GMXAdapter(_weth);
@@ -155,6 +160,18 @@ contract TestGmxAdapter is Test, Setup{
         assertEq(endOrdersLength == 0, true, "All Orders not cancelled");
     }
     
-    //ToDo - test withdraw
+    function testGmxAdapterTPSLOrders() public{
+        ClosePositionContext memory closeOrderLongContext;
+        vm.expectEmit(true, true, true, false);
+        emit ClosePosition(_wbtc, _wbtc, true, closeOrderLongContext);
+        _gmxAdapterProxyLong.openPosition{value:500000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 0, 13038357806412945305, 11038357806412945305, 0x08);
+    }
+
+    function testGmxAdapterWithdraw() public{
+        vm.expectEmit(true, true, true, false);
+        emit Withdraw(_wbtc, _account, 0);
+        _gmxAdapterProxyLong.withdraw();
+    }
+
     //ToDo - test cancelTimeout Orders
 }

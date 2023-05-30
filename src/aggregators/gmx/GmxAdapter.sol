@@ -222,7 +222,8 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
             sizeUsd: sizeUsd * GMX_DECIMAL_MULTIPLIER,
             priceUsd: priceUsd * GMX_DECIMAL_MULTIPLIER,
             isMarket: _isMarketOrder(flags),
-            gmxOrderIndex: 0
+            gmxOrderIndex: 0,
+            executionFee: 0
         });
         return _closePosition(context);
     }

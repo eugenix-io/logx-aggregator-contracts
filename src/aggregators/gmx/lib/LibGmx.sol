@@ -266,4 +266,12 @@ library LibGmx {
         slOrderKey = (tpslIndex << 128);
         slOrderKey = slOrderKey != bytes32(0) ? slOrderKey | timestamp : slOrderKey;
     }
+
+    function getPrExecutionFee(ExchangeConfigs memory exchangeConfigs) public view returns (uint256) {
+        return IGmxPositionRouter(exchangeConfigs.positionRouter).minExecutionFee();
+    }
+
+    function getObExecutionFee(ExchangeConfigs memory exchangeConfigs) public view returns (uint256) {
+        return IGmxOrderBook(exchangeConfigs.orderBook).minExecutionFee() + 1;
+    }
 }
