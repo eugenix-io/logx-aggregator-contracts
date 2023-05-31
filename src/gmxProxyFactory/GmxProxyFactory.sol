@@ -25,7 +25,6 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         address tokenIn;
         uint256 amountIn; // tokenIn.decimals
         uint256 minOut; // collateral.decimals
-        uint256 borrow; // collateral.decimals
         uint256 sizeUsd; // 1e18
         uint96 priceUsd; // 1e18
         uint96 tpPriceUsd; // 1e18
@@ -193,14 +192,14 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
     }
 
     function updateOrder(
-        uint256 projectId,
+        uint256 exchangeId,
         address collateralToken,
         address assetToken,
         bool isLong,
         OrderParams[] memory orderParams
     ) external {
         for (uint256 i = 0; i < orderParams.length; i++) {
-            IGmxAggregator(_mustGetProxy(projectId, msg.sender, collateralToken, assetToken, isLong)).updateOrder(
+            IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).updateOrder(
                 orderParams[i].orderKey,
                 orderParams[i].collateralDelta,
                 orderParams[i].sizeDelta,
@@ -208,6 +207,10 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
                 orderParams[i].triggerAboveThreshold
             );
         }
+    }
+
+    function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view returns(bytes32[] memory){
+        return IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).getPendingOrderKeys();
     }
 
     // ======================== Methods called by maintainer ========================

@@ -75,4 +75,6 @@ interface IMuxProxyFactory {
     function closePosition(ClosePositionArgs calldata args, PositionOrderExtra memory extra) external payable;
 
     function cancelOrders(uint256 exchangeId, address collateralToken, address assetToken, bool isLong, bytes32[] calldata keys) external;
+
+    function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view returns(uint64[] memory);
 }

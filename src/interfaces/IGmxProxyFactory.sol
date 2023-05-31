@@ -11,7 +11,6 @@ interface IGmxProxyFactory {
         address tokenIn;
         uint256 amountIn;
         uint256 minOut;
-        uint256 borrow;
         uint256 sizeUsd;
         uint96 priceUsd;
         uint8 flags;
@@ -51,5 +50,5 @@ interface IGmxProxyFactory {
     function openPosition(OpenPositionArgs calldata args) external payable;
     function closePosition(ClosePositionArgs calldata args) external payable;
     function cancelOrders(uint256 exchangeId, address collateralToken, address assetToken, bool isLong, bytes32[] calldata keys) external;
-
+    function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view  returns(bytes32[] memory);
 }

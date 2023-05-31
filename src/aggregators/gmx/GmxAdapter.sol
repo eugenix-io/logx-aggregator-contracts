@@ -242,16 +242,16 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         if (history.receiver == LibGmx.OrderReceiver.OB_INC) {
             IGmxOrderBook(_exchangeConfigs.orderBook).updateIncreaseOrder(
                 history.index,
-                sizeDelta,
-                triggerPrice,
+                sizeDelta * GMX_DECIMAL_MULTIPLIER,
+                triggerPrice * GMX_DECIMAL_MULTIPLIER,
                 triggerAboveThreshold
             );
         } else if (history.receiver == LibGmx.OrderReceiver.OB_DEC) {
             IGmxOrderBook(_exchangeConfigs.orderBook).updateDecreaseOrder(
                 history.index,
-                collateralDelta,
-                sizeDelta,
-                triggerPrice,
+                collateralDelta * GMX_DECIMAL_MULTIPLIER,
+                sizeDelta * GMX_DECIMAL_MULTIPLIER,
+                triggerPrice * GMX_DECIMAL_MULTIPLIER,
                 triggerAboveThreshold
             );
         } else {
