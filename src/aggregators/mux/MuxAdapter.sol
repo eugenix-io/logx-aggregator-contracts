@@ -98,30 +98,44 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         _updateConfigs();
         _cleanOrders();
 
-        uint8 profitTokenId = getTokenId(profitToken);
-        //We will not be consider the extra.tpslProfitTokenId sent by the user.
-        //We will be using profitTokenAddress supplied during the time of proxy creation
-        if(!isLong){
-            extra.tpslProfitTokenId = profitTokenId;
+        uint8 profitTokenId;
+        uint32 positionDeadline;
+        uint96 positionPrice;
+
+        //For a market order, if the deadline and price are not zero, transaction will fail on MUX side
+        if((flags & POSITION_MARKET_ORDER) != 0){
+            positionDeadline = 0;
+            positionPrice = 0;
+        }else{
+            positionDeadline = deadline;
+            positionPrice = price;
+        }
+
+        //For an open order, if the profitTokenId is zero, transaction will fail on MUX side
+        if((flags & POSITION_OPEN) != 0){
+            profitTokenId = 0;
+            //We will not have to deposit or give the approvals for close position
+            if (collateralToken == _WETH) {
+                IWETH(_WETH).deposit{ value: collateralAmount }();
+            }
+            IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.orderBook, collateralAmount);
+        }else{
+            profitTokenId = getTokenId(profitToken);
         }
 
         PositionContext memory context = PositionContext({
             collateralAmount : collateralAmount,
             size : size,
-            price : price,
+            price : positionPrice,
             flags : flags,
             assetPrice : assetPrice,
             collateralPrice : collateralPrice,
             profitTokenId : profitTokenId,
             subAccountId : _subAccountId,
-            deadline : deadline,
+            deadline : positionDeadline,
             isLong : isLong,
             extra : extra
         });
-        if (collateralToken == _WETH) {
-            IWETH(_WETH).deposit{ value: collateralAmount }();
-        }
-        IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.orderBook, context.collateralAmount);
 
         _placePositionOrder(context);
     }
