@@ -81,6 +81,10 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         return _tradingProxies[proxyId];
     }
 
+    function getProxiesOf(address account) public view returns (address[] memory) {
+        return _ownedProxies[account];
+    }
+
     function getExchangeConfig(uint256 ExchangeId) external view returns (uint256[] memory) {
         return _exchangeConfigs[ExchangeId].values;
     }
