@@ -7,7 +7,7 @@ import "./lib/LibMux.sol";
 import "./Storage.sol";
 import "./Types.sol";
 
-contract Positions is Storage{
+contract Position is Storage{
     uint256 internal constant MAX_PENDING_ORDERS = 64;
 
     event AddPendingOrder(

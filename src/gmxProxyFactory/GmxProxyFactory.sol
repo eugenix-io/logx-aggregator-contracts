@@ -69,7 +69,6 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
 
     // ======================== getter methods ========================
 
-    //ToDo - make this function only owner or only maintainer
     function getImplementationAddress(uint256 exchangeId) external view returns(address){
         return _implementations[exchangeId];
     }
@@ -133,7 +132,6 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         address assetToken,
         bool isLong
     ) public returns (address) {
-        //ToDo - verify collateral and asset IDs before we create a proxy
         return
             _createBeaconProxy(
                 exchangeId,

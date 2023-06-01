@@ -6,7 +6,7 @@ LogX is a perpetual trading aggregator which allows users to seamlessly get the 
 
 `Proxy Factory` is the contract with external functions for users/UI to interact with. For every position a user opens from a `Proxy Factory`, an `Exchange Proxy` (or `Exchange Adapter`) contract will be deployed which will, in turn, open a position on the exchange for the user. Any subsequent modifications to the position (placing an order, modifying the order, closing the position, etc) will be handled via the same `Exchange Proxy` contract.
 
-## MUX Proxy Factory User Functions
+## MUX Proxy Factory User Trade Functions
 
 ### Open and Close Positions
 ```solidity
@@ -14,7 +14,7 @@ function openPosition(PositionArgs calldata args, PositionOrderExtra calldata ex
 function closePosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable
 ```
 Note - in case of MUX, PositionArgs are common for opening and closing positions - both these functions internally call ‘placePositionOrder()’ on exchange proxy.
-We still have two separate functions for opening and closing positions instead of one to maintain continuity with the GMX interface.
+We still have two separate functions for opening and closing positions instead of one to maintain consistency with the GMX interface.
 
 #### PositionArgs
 ```solidity
@@ -77,6 +77,7 @@ profitTokenId == 0 (profit token ID mentioned in the tpsl extra parameters will 
 ```
 12. **referralCode :** following parameter is not being used since we inject logX referral code into exchange proxy. For now this value can be null.
 13. **deadline :** deadline before the order expires. Deadline should be 0 for Market Orders - even if the user give a deadline for a market order by mistake, the proxy factory makes sure the deadline for market orders is set to 0.
+14. **msg.value :** if the collateralToken is _weth, then the msg.value should be equal to collateralAmount. If collateralToken is not _weth, then msg.value should be equal to 0. 
 
 ### Order Management
 ```solidity
@@ -85,7 +86,7 @@ function cancelOrders(uint256 exchangeId, address collateralToken, address asset
 ```
 **keys :** list of the order keys we want to cancel
 
-## GMX Proxy Factory User Functions
+## GMX Proxy Factory User Trade Functions
 
 Unlike MUX, GMX open and close Position function have different input arguments.
 ### Open Position
@@ -131,10 +132,13 @@ POSITION_TPSL_ORDER = 0x08
 Example : If the user wants to open a tpsl order, the flags will be 0x08.
 ```
 12. **referralCode :** following parameter is not being used since we inject logX referral code into exchange proxy. For now this value can be null.
+13. **msg.value :** In GMX, the msg.value should have the executionFees which GMX charges. Everytime the user places a market / limit order in open / close position. If the msg.value is less than minimum execution fee of GMX, the transaction fails to go through.
+NOTE that while placing a TPSL order, the user will be paying the execution Fees thrice (once to open position, once to create TP close order, once to create SL close order). In all other cases, the user will pay execution Fees only once.
+If the collateralToken is specified as WETH, the msg.value should have amountIn + executionFees amount of ETH failing which the transaction will not go through.
 
 ### Close Position
 ```solidity
-function openPosition(OpenPositionArgs calldata args) external payable 
+function closePosition(ClosePositionArgs calldata args) external payable 
 ```
 
 #### ClosePositionArgs
@@ -153,7 +157,7 @@ struct ClosePositionArgs {
         bytes32 referralCode;
     }
 ```
-NOTE - the following documentation only talks about the arguments which have not been talked about in OpenPositionArgs. If an argument is present in OpenPositionArgs and not discussed, the reader should assume the same applied here.
+**NOTE -** the following documentation only talks about the arguments which have not been talked about in OpenPositionArgs. If an argument is present in OpenPositionArgs and not discussed, the reader should assume the same applied here.
 
 1. **collateralUsd :** collateral amount in USD that the user wants to withdraw / decrease from the position. collateralUsd has to be denominated in 1e18.
 2. **sizeUsd :** size of the position in USD that the user wants to withdraw / decrease from the position. sizeUsd has to be denominated in 1e18.

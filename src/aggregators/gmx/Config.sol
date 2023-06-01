@@ -40,6 +40,7 @@ contract Config is Storage, Position{
 
         address newPositionRouter = values[uint256(ExchangeConfigIds.POSITION_ROUTER)].toAddress();
         address newOrderBook = values[uint256(ExchangeConfigIds.ORDER_BOOK)].toAddress();
+        //ToDo - is cancelling orders when we change positionRouter and orderBook really necessary?
         _onGmxAddressUpdated(
             _exchangeConfigs.positionRouter,
             _exchangeConfigs.orderBook,
@@ -59,12 +60,12 @@ contract Config is Storage, Position{
 
     function _onGmxAddressUpdated(
         address previousPositionRouter,
-        address prevousOrderBook,
+        address previousOrderBook,
         address newPostitionRouter,
         address newOrderBook
     ) internal virtual {
         bool cancelPositionRouter = previousPositionRouter != newPostitionRouter;
-        bool cancelOrderBook = prevousOrderBook != newOrderBook;
+        bool cancelOrderBook = previousOrderBook != newOrderBook;
         bytes32[] memory pendingKeys = _pendingOrders.values();
         for (uint256 i = 0; i < pendingKeys.length; i++) {
             bytes32 key = pendingKeys[i];
@@ -73,7 +74,7 @@ contract Config is Storage, Position{
                 _removePendingOrder(key);
             }
             if (cancelOrderBook) {
-                LibGmx.cancelOrderFromOrderBook(newPostitionRouter, key);
+                LibGmx.cancelOrderFromOrderBook(newOrderBook, key);
                 _removePendingOrder(key);
             }
         }

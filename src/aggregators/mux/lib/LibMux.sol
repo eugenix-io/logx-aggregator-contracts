@@ -105,4 +105,9 @@ library LibMux {
         IMuxOrderBook(_exchangeConfigs.orderBook).cancelOrder(orderId);
         success = true;
     }
+
+    function cancelOrderFromOrderBook(address orderBook, uint64 orderId) internal returns(bool success){
+        IMuxOrderBook(orderBook).cancelOrder(orderId);
+        success = true;
+    }
 }

@@ -102,8 +102,8 @@ contract TestProxyFactory is Test, Setup{
     //The following test cases are not possible to write until we have an implementation contract live on mainnet / testnet
     //ToDo - write test for openPosition
     //ToDo - write test for closePosition
-    //ToDo - write test for closeOrder
-    //ToDo - test the getProxyExchangeId function
+    //ToDo - write test for cancelOrder
+    //ToDo - test the g function
     //ToDo - test the getExchangeProxy function
     //ToDo - test the getTradingProxy function
 }

@@ -127,24 +127,30 @@ contract TestGmxAdapter is Test, Setup{
         OpenPositionContext memory openOrderLongContext;
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_wbtc, _wbtc, true, openOrderLongContext);
-        _gmxAdapterProxyLong.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 0, 64, 0, 0);
+        uint8 flags = 0x40;
+        //Placing a long open market position order with 0.0018 ETH for execution Fees, 18 DAI as collateral, mininum swap out amount 0 on size of $600 worth WBTC 
+        _gmxAdapterProxyLong.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 600000000000000000000, 0, 0, 0, flags);
 
         OpenPositionContext memory openOrderShortContext;
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_dai, _weth, false, openOrderShortContext);
-        _gmxAdapterProxyShort.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 1900000000000000000000, 0, 0, 0);
+        //Placing a short open limit position order with 0.0018 ETH, 18 DAI as collateral, mininum swap out amount 0 on size of $600 worth ETH on a limit price of $1900
+        _gmxAdapterProxyShort.openPosition{value:180000000000000}(_dai, 18000000000000000000, 0, 600000000000000000000, 1900000000000000000000, 0, 0, 0);
     }
 
     function testGmxAdapterClosePosition() public {
         ClosePositionContext memory closeOrderLongContext;
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_wbtc, _wbtc, true, closeOrderLongContext);
-        _gmxAdapterProxyLong.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 1700000000000000000000, 0, 0, 0);
+        //Placing a long close limit position order with 0.0018 ETH for execution Fees, 18 DAI for collateral on size of $600 worth BTC and limit price of $1900
+        _gmxAdapterProxyLong.closePosition{value:180000000000000}(18000000000000000000, 600000000000000000000, 1900000000000000000000, 0, 0, 0);
 
         ClosePositionContext memory closeOrderShortContext;
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_dai, _weth, false, closeOrderShortContext);
-        _gmxAdapterProxyShort.closePosition{value:180000000000000}(18000000000000000000, 12038357806412945305, 0, 64, 0, 0);
+        uint8 flags = 0x40;
+        //Placing a short close market position order with 0.0018 ETH for execution Fees, 18 DAI for collateral on size of $600 worth ETH
+        _gmxAdapterProxyShort.closePosition{value:180000000000000}(18000000000000000000, 600000000000000000000, 0, 0, 0, flags);
 
         //Test Update Orders
         bytes32[] memory ordersBefore = _gmxAdapterProxyLong.getPendingOrderKeys();
@@ -164,7 +170,8 @@ contract TestGmxAdapter is Test, Setup{
         ClosePositionContext memory closeOrderLongContext;
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_wbtc, _wbtc, true, closeOrderLongContext);
-        _gmxAdapterProxyLong.openPosition{value:500000000000000}(_dai, 18000000000000000000, 0, 12038357806412945305, 0, 13038357806412945305, 11038357806412945305, 0x08);
+        //Placing a long close TPSL position order with 0.005 ETH for execution Fees, 18 DAI for collateral on size of $600 worth BTC (0 min swap out amount) and take profit price of $1900 and stop loss price of $1100
+        _gmxAdapterProxyLong.openPosition{value:500000000000000}(_dai, 18000000000000000000, 0, 600000000000000000000, 0, 1900000000000000000000, 1100000000000000000000, 0x08);
     }
 
     function testGmxAdapterWithdraw() public{

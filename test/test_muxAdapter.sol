@@ -95,14 +95,12 @@ contract TestMuxAdapter is Test, Setup{
         assertEq(currentAccountLong.collateralToken, _wbtc);
         assertEq(currentAccountLong.indexToken, _wbtc);
         assertEq(currentAccountLong.isLong, true);
-        assertEq(currentAccountLong.collateralDecimals, 8);
 
         AccountState memory currentAccountShort = _muxAdapterProxyShort.accountState();
         assertEq(currentAccountShort.account, _account);
         assertEq(currentAccountShort.collateralToken, _dai);
         assertEq(currentAccountShort.indexToken, _weth);
         assertEq(currentAccountShort.isLong, false);
-        assertEq(currentAccountShort.collateralDecimals, 18);
     }
 
     function testMuxAdapterOpenPosition() public{
@@ -116,23 +114,27 @@ contract TestMuxAdapter is Test, Setup{
         PositionContext memory openOrderContext;
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_wbtc, _wbtc, true, openOrderContext);
-        _muxAdapterProxyLong.placePositionOrder(_wbtc, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, 0, true, _usdc, extra);
+        //Placing a long open position order with collateral of 0.18 BTC and size $600. price is 0 since it is a Market Order, price of both asset and collateral (BTC) is given as $26451.3 and profitToken is USDC
+        _muxAdapterProxyLong.placePositionOrder(_wbtc, 18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 26451300000000000000000, 0, true, _usdc, extra);
 
         flags = 0x80; //Open Position Order | limit Order
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_dai, _weth, false, openOrderContext);
-        _muxAdapterProxyShort.placePositionOrder(_dai, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _usdc, extra);
+        //Placing a short open position order with collateral of 18 DAI and size $600. price is $20451.3 for the Limit Order, price of asset (BTC) is given as $26451.3, collateral price (DAI) at $1 and profitToken is USDC
+        _muxAdapterProxyShort.placePositionOrder(_dai, 180000000000000000000, 600000000000000000000, 20451300000000000000000, flags, 26451300000000000000000, 1000000000000000000, uint32(block.timestamp+10), false, _usdc, extra);
 
         flags = 0x80 + 0x08; //Open Position Order | TPSL Order
+        //Take Profit price for BTC at $28451.2 and Stop Loss price for BTC at 24451.2
         extra = PositionOrderExtra({
             tpslProfitTokenId : 4,
-            tpPrice : 13038357806412945305,
-            slPrice : 11038357806412945305,
+            tpPrice : 28451300000000000000000,
+            slPrice : 24451300000000000000000,
             tpslDeadline : uint32(block.timestamp+100)
         });
         vm.expectEmit(true, true, true, false);
         emit OpenPosition(_wbtc, _wbtc, true, openOrderContext);
-        _muxAdapterProxyLong.placePositionOrder(_wbtc, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+100), true, _usdc, extra);
+        //Placing a long open position position with collateral of 0.18 BTC and size $600. price is 0 for the TPSL Order, price of both asset and collateral (BTC) is given as $26451.3 and profitToken is USDC
+        _muxAdapterProxyLong.placePositionOrder(_wbtc, 18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+100), true, _usdc, extra);
     }
 
     function testMuxAdapterClosePosition() public{
@@ -146,12 +148,14 @@ contract TestMuxAdapter is Test, Setup{
         PositionContext memory closeOrderContext;
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_wbtc, _wbtc, true, closeOrderContext);
-        _muxAdapterProxyLong.placePositionOrder(_wbtc, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, 0, true, _wbtc, extra);
+        //Placing a long close position order with collateral of 0.18 BTC and size $600. price is 0 since it is a Market Order, price of both asset and collateral (BTC) is given as $26451.3 and profitToken is USDC
+        _muxAdapterProxyLong.placePositionOrder(_wbtc, 18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 1000000000000000000, 0, true, _wbtc, extra);
 
         flags = 0x0; //Open Position Order | limit Order
         vm.expectEmit(true, true, true, false);
         emit ClosePosition(_dai, _weth, false, closeOrderContext);
-        _muxAdapterProxyShort.placePositionOrder(_dai, 1800000000, 12038357806412945305, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _weth, extra);
+        //Placing a short close position order with collateral of 18 DAI and size $600. price is $20451.3 for the Limit Order, price of asset (BTC) is given as $26451.3, collateral price (DAI) at $1 and profitToken is USDC
+        _muxAdapterProxyShort.placePositionOrder(_dai, 180000000000000000000, 600000000000000000000, 28451300000000000000000, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _weth, extra);
 
         //Test Cancel Orders
         uint64[] memory ordersBefore = _muxAdapterProxyLong.getPendingOrderKeys();
@@ -165,6 +169,7 @@ contract TestMuxAdapter is Test, Setup{
         assertEq(endOrdersLength == 0, true, "All Orders not cancelled");
     }
 
+    //ToDo - make the function better.
     function testMuxAdapterWithdraw() public{
         vm.expectEmit(true, true, true, false);
         emit Withdraw(_wbtc, _account, 0);

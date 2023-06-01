@@ -47,7 +47,6 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
 
     // ======================== getter methods ========================
 
-    //ToDo - make this function only owner or only maintainer
     function getImplementationAddress(uint256 exchangeId) external view returns(address){
         return _implementations[exchangeId];
     }
@@ -111,7 +110,6 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         address assetToken,
         bool isLong
     ) public returns (address) {
-        //ToDo - verify collateral and asset IDs before we create a proxy
         return
             _createBeaconProxy(
                 exchangeId,

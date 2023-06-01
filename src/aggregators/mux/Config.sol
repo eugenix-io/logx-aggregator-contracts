@@ -6,9 +6,11 @@ import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/ex
 import "../../interfaces/IMuxProxyFactory.sol";
 
 import "../lib/LibUtils.sol";
+import "./lib/LibMux.sol";
 import "./Storage.sol";
+import "./Position.sol";
 
-contract Config is Storage{
+contract Config is Storage, Position{
     using LibUtils for bytes32;
     using LibUtils for address;
     using LibUtils for uint256;
@@ -28,7 +30,6 @@ contract Config is Storage{
             _updateAssetConfigs();
             _localAssetVersions[token] = latestAssetVersion;
         }
-        _patch();
     }
 
     function _updateexchangeConfigs() internal {
@@ -38,14 +39,24 @@ contract Config is Storage{
         address newLiquidityPool = values[uint256(ExchangeConfigIds.LIQUIDITY_POOL)].toAddress();
         address newOrderBook = values[uint256(ExchangeConfigIds.ORDER_BOOK)].toAddress();
 
-        //ToDo - Do we need onMuxOrderUpdated??
+        //ToDo - should we cancel orders when we change orderBook
+        _onMuxOrderUpdated(_exchangeConfigs.orderBook, newOrderBook);
 
         _exchangeConfigs.liquidityPool = newLiquidityPool;
         _exchangeConfigs.orderBook = newOrderBook;
         _exchangeConfigs.referralCode = bytes32(values[uint256(ExchangeConfigIds.REFERRAL_CODE)]);
-        
+    }
 
-        //ToDo - do we need market and limit order timeouts here?
+    function _onMuxOrderUpdated(address previousOrderBook, address newOrderBook) internal{
+        bool cancelOrderBook = previousOrderBook != newOrderBook;
+        uint64[] memory pendingKeys = _pendingOrders;
+        for (uint256 i = 0; i < pendingKeys.length; i++) {
+            uint64 key = pendingKeys[i];
+            if (cancelOrderBook) {
+                LibMux.cancelOrderFromOrderBook(newOrderBook, key);
+                _removePendingOrder(key);
+            }
+        }
     }
 
     function _updateAssetConfigs() internal {
@@ -62,12 +73,5 @@ contract Config is Storage{
         uint256[] memory tokenValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, tokenAddress);
         require(tokenValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
         tokenId = tokenValues[uint256(TokenConfigIds.ID)].toU8();
-    }
-
-    // path  ToDo: remove me when deploy?
-    function _patch() internal {
-        if (_account.collateralDecimals == 0) {
-            _account.collateralDecimals = IERC20MetadataUpgradeable(_account.collateralToken).decimals();
-        }
     }
 }

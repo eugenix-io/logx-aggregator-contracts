@@ -12,9 +12,8 @@ import "../../interfaces/IMuxOrderBook.sol";
 import "../../components/ImplementationGuard.sol";
 import "./Storage.sol";
 import "./Config.sol";
-import "./Positions.sol";
 
-contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, ReentrancyGuardUpgradeable{
+contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
     using Address for address;
 
@@ -57,7 +56,6 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
         _account.collateralToken = collateralToken;
         _account.indexToken = assetToken;
         _account.isLong = isLong;
-        _account.collateralDecimals = IERC20MetadataUpgradeable(collateralToken).decimals();
         _updateConfigs();
         _subAccountId = encodeSubAccountId(isLong);
     }
@@ -77,8 +75,6 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
             (uint256(isLong ? 1 : 0) << 79)
         );
     }
-
-    //ToDo - how do we implement accountState function?
 
     /// @notice Place a openning request on MUX.
     function placePositionOrder(
@@ -191,7 +187,6 @@ contract MuxAdapter is Storage, Config, Positions, ImplementationGuard, Reentran
     function _cleanOrders() internal {
         uint64[] memory pendingKeys = _pendingOrders;
         for (uint256 i = 0; i < pendingKeys.length; i++) {
-            //ToDo - Beware of dataloss from typecasting
             uint64 key = pendingKeys[i];
             ( ,bool notExist) = LibMux.getOrder(_exchangeConfigs, key);
             if (notExist) {
