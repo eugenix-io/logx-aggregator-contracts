@@ -16,6 +16,8 @@ interface IMuxAggregator {
 
     function accountState() external returns(AccountState memory);
 
+    function getPositionKey() external view returns(bytes32);
+
     function placePositionOrder(
         address collateralToken,
         uint96 collateralAmount, // tokenIn.decimals

@@ -2,6 +2,7 @@
 pragma solidity 0.8.19;
 
 import "../aggregators/gmx/Types.sol";
+import "../aggregators/gmx/lib/LibGmx.sol";
 
 interface IGmxAggregator {
     function initialize(
@@ -13,6 +14,10 @@ interface IGmxAggregator {
     ) external;
 
     function accountState() external returns(AccountState memory);
+
+    function getPositionKey() external view returns(bytes32);
+
+    function getOrder(bytes32 orderKey) external view returns(bool isFilled, LibGmx.OrderHistory memory history);
 
     function openPosition(
         address swapInToken,

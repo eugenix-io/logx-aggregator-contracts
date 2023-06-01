@@ -157,6 +157,12 @@ contract TestGmxAdapter is Test, Setup{
         uint256 startOrdersLength = ordersBefore.length;
         bytes32 orderKey = ordersBefore[0];
         assertEq(startOrdersLength > 0, true, "0 starting Orders");
+
+        (bool isFilledLong, LibGmx.OrderHistory memory history) = _gmxAdapterProxyLong.getOrder(orderKey);
+        assertEq(isFilledLong, false);
+        assertEq(history.receiver == LibGmx.OrderReceiver.OB_DEC, true);
+        assertEq(history.category == LibGmx.OrderCategory.CLOSE, true);
+
         _gmxAdapterProxyLong.updateOrder(orderKey, 0, 0, 10000000000000000000, false);
 
         //Test Cancel Orders
@@ -178,6 +184,12 @@ contract TestGmxAdapter is Test, Setup{
         vm.expectEmit(true, true, true, false);
         emit Withdraw(_wbtc, _account, 0);
         _gmxAdapterProxyLong.withdraw();
+    }
+
+    function testGmxAdapterGetPositionKey() public{
+        bytes32 requiredPositionKey = keccak256(abi.encodePacked(0x898A32b0fa508812a00b9c2E6B109b8216dF1588, _wbtc, _wbtc, true));
+        bytes32 gmxPositionKey = _gmxAdapterProxyLong.getPositionKey();
+        assertEq(gmxPositionKey, requiredPositionKey);
     }
 
     //ToDo - test cancelTimeout Orders

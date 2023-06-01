@@ -39,7 +39,7 @@ contract Config is Storage, Position{
         address newLiquidityPool = values[uint256(ExchangeConfigIds.LIQUIDITY_POOL)].toAddress();
         address newOrderBook = values[uint256(ExchangeConfigIds.ORDER_BOOK)].toAddress();
 
-        //ToDo - should we cancel orders when we change orderBook
+        //ToDo - is cancelling orders when we change orderBook really necessary?
         _onMuxOrderUpdated(_exchangeConfigs.orderBook, newOrderBook);
 
         _exchangeConfigs.liquidityPool = newLiquidityPool;

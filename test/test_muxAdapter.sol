@@ -175,4 +175,10 @@ contract TestMuxAdapter is Test, Setup{
         emit Withdraw(_wbtc, _account, 0);
         _muxAdapterProxyLong.withdraw();
     }
+
+    function testMuxAdapterGetPositionKey() public{
+        bytes32 requiredSubAccountId = 0xb6D3e86660A5613D9797A39E8A779D1A4525c945040401000000000000000000;
+        bytes32 muxSubAccountId = _muxAdapterProxyLong.getPositionKey();
+        assertEq(muxSubAccountId, requiredSubAccountId);
+    }
 }

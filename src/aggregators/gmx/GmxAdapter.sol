@@ -15,6 +15,8 @@ import "./Storage.sol";
 import "./Config.sol";
 import "./Position.sol";
 
+import "./lib/LibGmx.sol";
+
 contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpgradeable{
     using MathUpgradeable for uint256;
     using SafeERC20Upgradeable for IERC20Upgradeable;
@@ -56,6 +58,7 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
 
         _factory = msg.sender;
         _gmxPositionKey = keccak256(abi.encodePacked(address(this), collateralToken, assetToken, isLong));
+
         _account.account = account;
         _account.collateralToken = collateralToken;
         _account.indexToken = assetToken;
@@ -70,6 +73,14 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
 
     function getPendingOrderKeys() external view returns (bytes32[] memory) {
         return _getPendingOrders();
+    }
+
+    function getPositionKey() external view returns(bytes32){
+        return _gmxPositionKey;
+    }
+
+    function getOrder(bytes32 orderKey) external view returns(bool isFilled, LibGmx.OrderHistory memory history){
+        (isFilled, history) = LibGmx.getOrder(_exchangeConfigs, orderKey);
     }
 
     function _tryApprovePlugins() internal {

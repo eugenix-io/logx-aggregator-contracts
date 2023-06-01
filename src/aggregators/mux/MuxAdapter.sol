@@ -64,6 +64,10 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         return _account;
     }
 
+    function getPositionKey() external view returns(bytes32){
+        return _subAccountId;
+    }
+
     function encodeSubAccountId(bool isLong) internal view returns (bytes32)
     {
         uint8 collateralId = _collateralConfigs.id;
@@ -72,7 +76,7 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
             (uint256(uint160(address(this))) << 96) |
             (uint256(collateralId) << 88) |
             (uint256(assetId) << 80) |
-            (uint256(isLong ? 1 : 0) << 79)
+            (uint256(isLong ? 1 : 0) << 72)
         );
     }
 
