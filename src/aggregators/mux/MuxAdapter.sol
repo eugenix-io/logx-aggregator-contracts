@@ -64,7 +64,7 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         return _account;
     }
 
-    function getPositionKey() external view returns(bytes32){
+    function getSubAccountId() external view returns(bytes32){
         return _subAccountId;
     }
 

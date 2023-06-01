@@ -186,3 +186,140 @@ struct OrderParams {
 2. **sizeDelta :** additional increase / decrease in size for position. sizeDelta has to be denominated in 1e18.
 2. **triggerPrice :** new trigger price for order. triggerPrice has to be denominated in 1e18.
 2. **triggerAboveThreshold :** true if order has to be triggered if the price is above the threshold and vice versa.
+
+## Post Trade Functions
+
+Following part of the document deals with functions that can be used to track user's positions and orders after they have placed a transactions
+
+### Fetching User Position
+
+Each Position is represented by an Adapter Proxy contract - any subsequent changes to the same position will be reflected in the contract.
+
+To get the addresses of all adapter proxies belonging to a user
+```solidity
+function getProxiesOf(address account) public view returns (address[] memory)
+```
+
+We can call the following function in each of the proxy addresses to get position information 
+```solidity
+function accountState() external view returns (AccountState memory)
+```
+
+#### AccountState
+```solidity
+struct AccountState {
+    address account;
+    address collateralToken;
+    address indexToken; // 160
+    bool isLong; // 8
+    uint8 collateralDecimals;
+    bytes32[20] reserved;
+}
+```
+**account :** address of the user who owns the position
+Remaining parameters are self explainatory.
+
+For additional information regarding the position, we will have to directly call functions of exchange's contract.
+In order to get position details directly from exchange's contracts, we will need subAccountId and gmxPositionKey for MUX and GMX respectively.
+
+#### MUX Position Details
+
+Following function can be called in the adapter proxy to get the subAccountId associated with the position - 
+```solidity
+function getSubAccountId() external view returns(bytes32)
+```
+
+Once we get the subAccountId we can call the following function from MUX Getter (Liquidity Pool) to fetch more details regarding the subAccount
+```solidity
+function getSubAccount(
+        bytes32 subAccountId
+    )
+        external
+        view
+        returns (uint96 collateral, uint96 size, uint32 lastIncreasedTime, uint96 entryPrice, uint128 entryFunding)
+```
+
+#### GMX Position Details
+
+Following function can be called in the adapter proxy to get the gmxPositionKey associated with the position - 
+```solidity
+function getPositionKey() external view returns(bytes32)
+```
+
+Once we get the gmxPositionKey we can call the following function from GMX Vault to fetch more details regarding the position
+```solidity
+function getPosition(address _account, address _collateralToken, address _indexToken, bool _isLong) public override view returns (uint256, uint256, uint256, uint256, uint256, uint256, bool, uint256)
+// 0 size, 
+// 1 collateral, 
+// 2 averagePrice, 
+// 3 entryFundingRate, 
+// 4 reserveAmount, 
+// 5 realisedPnl, 
+// 6 realisedPnl >= 0, 
+// 7 lastIncreasedTime 
+```
+
+### Fetching User Orders
+
+We can get the pending order keys of a user by querying the following function with the adapter proxy - 
+```solidity
+For MUX - 
+function getPendingOrderKeys() external view returns (uint64[] memory)
+
+For GMX - 
+function getPendingOrderKeys() external view returns (bytes32[] memory)
+
+Note the difference in datatypes of the return values
+```
+
+Once we get the order keys, in case of **GMX** we can query another function on our adapter proxy to fetch more information - 
+```solidity
+function getOrder(bytes32 orderKey) external view returns(bool isFilled, LibGmx.OrderHistory memory history)
+```
+
+#### Order History, Order Category and Order Receiver 
+```solidity
+struct OrderHistory {
+    OrderCategory category; // 4
+    OrderReceiver receiver; // 4
+    uint64 index; // 64
+    uint96 zero; // 96
+    uint88 timestamp; // 80
+}
+
+enum OrderCategory {
+    NONE,
+    OPEN,
+    CLOSE
+}
+
+enum OrderReceiver {
+    PR_INC,
+    PR_DEC,
+    OB_INC,
+    OB_DEC
+}
+```
+1. **index :** GMX Order Index
+2. **zero :** Empty space left for potential future use
+3. **timestamp :** timestamp at which the order was placed
+4. **PR_INC :** Increase Position Order plaed with Position Router (Market Order)
+5. **PR_DEC :** Decrease Position Order plaed with Position Router (Market Order)
+6. **OB_INC :** Increase Position Order plaed with Order Book (Limit Order)
+7. **OB_DEC :** Decrease Position Order plaed with Order Book (Limit Order)
+
+In case of **MUX** we have to call the following function directly from MUX Order Book-
+```solidity
+function getOrder(uint64 orderId) external view returns (bytes32[3] memory, bool)
+```
+Following is how the bytes32[3] return value looks like (The response has to be decoded) - 
+```
+//                                  160        152       144         120        96   72   64               8        0
+// +----------------------------------------------------------------------------------+--------------------+--------+
+// |              subAccountId 184 (already shifted by 72bits)                        |     orderId 64     | type 8 |
+// +----------------------------------+----------+---------+-----------+---------+---------+---------------+--------+
+// |              size 96             | profit 8 | flags 8 | unused 24 | exp 24  | time 32 |      enumIndex 64      |
+// +----------------------------------+----------+---------+-----------+---------+---------+---------------+--------+
+// |             price 96             |                    collateral 96                   |        unused 64       |
+// +----------------------------------+----------------------------------------------------+------------------------+
+```
