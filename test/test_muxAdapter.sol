@@ -176,7 +176,7 @@ contract TestMuxAdapter is Test, Setup{
         _muxAdapterProxyLong.withdraw();
     }
 
-    function testMuxAdapterGetPositionKey() public{
+    function testMuxAdapterGetSubAccountId() public{
         bytes32 requiredSubAccountId = 0xb6D3e86660A5613D9797A39E8A779D1A4525c945040401000000000000000000;
         bytes32 muxSubAccountId = _muxAdapterProxyLong.getSubAccountId();
         assertEq(muxSubAccountId, requiredSubAccountId);

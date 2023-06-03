@@ -88,10 +88,10 @@ contract Position  is Storage{
             (hasProfit ? int256(gmxPnlUsd) : -int256(gmxPnlUsd)) -
             int256(gmxFundingFeeUsd);
         if (_account.isLong) {
-            value -= (int256(deltaCollateral) * int256(position.averagePrice)) / int256(10**_account.collateralDecimals); // 1e30
+            value += (int256(deltaCollateral) * int256(position.averagePrice)) / int256(10**_account.collateralDecimals); // 1e30
         } else {
             uint256 tokenPrice = LibGmx.getOraclePrice(_exchangeConfigs, _account.collateralToken, false); // 1e30
-            value -= (int256(deltaCollateral) * int256(tokenPrice)) / int256(10**_account.collateralDecimals); // 1e30
+            value += (int256(deltaCollateral) * int256(tokenPrice)) / int256(10**_account.collateralDecimals); // 1e30
         }
         if (value > 0) {
             accountValue = uint256(value);
