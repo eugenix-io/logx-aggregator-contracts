@@ -1,13 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 pragma solidity 0.8.19;
 
+import "../../../lib/openzeppelin-contracts-upgradeable/contracts/utils/math/MathUpgradeable.sol";
 import "../../interfaces/IMuxGetter.sol";
 import "./lib/LibMux.sol";
+import "../lib/LibMath.sol";
 
 import "./Storage.sol";
 import "./Types.sol";
 
 contract Position is Storage{
+    using MathUpgradeable for uint256;
+    using LibMath for uint256;
+
     uint256 internal constant MAX_PENDING_ORDERS = 64;
 
     event AddPendingOrder(
@@ -54,24 +59,32 @@ contract Position is Storage{
         }
     }
 
-    function _isMarginSafe(SubAccount memory subAccount, uint96 collateralPrice, uint96 assetPrice, bool isLong, bool isOpen) internal view returns(bool){
-        //ToDo - double check if the following calculations are solid - compare them with contracts on MUX as well
+    function _isMarginSafe(SubAccount memory subAccount, uint96 collateralPrice, uint96 assetPrice, bool isLong, uint96 collateralDelta, uint96 sizeDelta, bool isOpen) internal view returns(bool){
         if(subAccount.size == 0){
             return true;
         }
-        Asset memory asset = IMuxGetter(_exchangeConfigs.liquidityPool).getAssetInfo(_assetConfigs.id);
-        bool hasProfit = false;
-        uint96 muxPnlUsd = 0;
-        uint96 muxFundingFeeUsd = 0;
+        Margin memory margin;
+        margin.asset = IMuxGetter(_exchangeConfigs.liquidityPool).getAssetInfo(_assetConfigs.id);
+        bool hasProfit;
         if (subAccount.size != 0) {
-            if (subAccount.size != 0) {
-                //ToDo - should we add deltaSize and deltaCollateralAmount to subAccount.size below?
-                (hasProfit, muxPnlUsd) = LibMux._positionPnlUsd(asset, subAccount, isLong, subAccount.size, assetPrice); 
-                muxFundingFeeUsd = LibMux._getFundingFeeUsd(subAccount, asset, isLong, assetPrice);
-            }
+            (hasProfit, margin.muxPnlUsd) = LibMux._positionPnlUsd(margin.asset, subAccount, isLong, subAccount.size, assetPrice); 
+            margin.muxFundingFeeUsd = LibMux._getFundingFeeUsd(subAccount, margin.asset, isLong, assetPrice);
         }
-        uint32 threshold = isOpen ? asset.initialMarginRate : asset.maintenanceMarginRate;
-        return LibMux._isAccountSafe(subAccount, collateralPrice, assetPrice, threshold, hasProfit, muxPnlUsd, muxFundingFeeUsd);
+
+        //We dont have to add sizeDelta to liquidation fees since we are only concerned about the current position liquidating
+        margin.liquidationFeeUsd = LibMux._getLiquidationFeeUsd(margin.asset, subAccount.size, assetPrice);
+
+        //Minimum threshold the position has to maintain
+        uint32 threshold = isOpen ? margin.asset.initialMarginRate : margin.asset.maintenanceMarginRate;
+        margin.thresholdUsd = ((uint256(subAccount.size) + uint256(sizeDelta)) * uint256(assetPrice) * uint256(threshold)) / 1e18 / 1e5;
+
+        //Collateral left in the position
+        uint256 collateralUsd = (uint256(subAccount.collateral) + uint256(collateralDelta)).wmul(collateralPrice);
+        //for closing a position, we dont have to consider the delta in size and collateral, we just want to make sure the current position margin is safe.
+        collateralDelta = isOpen ? collateralDelta : 0;
+        sizeDelta = isOpen ? sizeDelta : 0;
+
+        return ((hasProfit ? collateralUsd + margin.muxPnlUsd - margin.muxFundingFeeUsd : collateralUsd - margin.muxPnlUsd - margin.muxFundingFeeUsd) >= margin.thresholdUsd.max(margin.liquidationFeeUsd));
     }
 
     function _placePositionOrder(PositionContext memory context) internal{
@@ -88,6 +101,8 @@ contract Position is Storage{
                 context.collateralPrice,
                 context.assetPrice,
                 context.isLong,
+                context.collateralAmount,
+                context.size,
                 isOpen
             ),
             "ImMarginUnsafe"

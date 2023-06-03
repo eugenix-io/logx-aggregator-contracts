@@ -65,23 +65,25 @@ library LibMux {
     }
 
     function _isAccountSafe(
-        SubAccount memory subAccount,
-        uint96 collateralPrice,
-        uint96 assetPrice,
-        uint32 marginRate,
+        uint256 thresholdUsd,
+        uint256 collateralUsd,
         bool hasProfit,
         uint96 pnlUsd,
-        uint96 fundingFee // fundingFee = 0 if subAccount.collateral was modified
+        uint96 fundingFee,// fundingFee = 0 if subAccount.collateral was modified
+        uint96 liquidationFeeUsd
     ) internal pure returns (bool) {
-        uint256 thresholdUsd = (uint256(subAccount.size) * uint256(assetPrice) * uint256(marginRate)) / 1e18 / 1e5;
-        thresholdUsd += fundingFee;
-        uint256 collateralUsd = uint256(subAccount.collateral).wmul(collateralPrice);
+        
         // break down "collateralUsd +/- pnlUsd >= thresholdUsd >= 0"
-        if (hasProfit) {
-            return collateralUsd + pnlUsd >= thresholdUsd;
-        } else {
-            return collateralUsd >= thresholdUsd + pnlUsd;
-        }
+        
+    }
+
+    function _getLiquidationFeeUsd(
+        Asset memory asset,
+        uint96 amount,
+        uint96 assetPrice
+    ) internal pure returns (uint96) {
+        uint256 feeUsd = ((uint256(assetPrice) * uint256(asset.liquidationFeeRate)) * uint256(amount)) / 1e5 / 1e18;
+        return feeUsd.safeUint96();
     }
 
     function _blockTimestamp() internal view returns (uint32) {

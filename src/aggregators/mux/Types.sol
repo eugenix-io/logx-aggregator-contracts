@@ -145,3 +145,11 @@ struct PositionOrderExtra {
     uint8 tpslProfitTokenId; // only valid when flags.POSITION_TPSL_STRATEGY.
     uint32 tpslDeadline; // only valid when flags.POSITION_TPSL_STRATEGY.
 }
+
+struct Margin {
+    Asset asset;
+    uint96 muxPnlUsd;
+    uint96 muxFundingFeeUsd;
+    uint96 liquidationFeeUsd;
+    uint256 thresholdUsd;
+}
