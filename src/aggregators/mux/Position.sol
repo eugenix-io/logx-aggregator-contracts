@@ -60,6 +60,10 @@ contract Position is Storage{
     }
 
     function _isMarginSafe(SubAccount memory subAccount, uint96 collateralPrice, uint96 assetPrice, bool isLong, uint96 collateralDelta, uint96 sizeDelta, bool isOpen) internal view returns(bool){
+        //for closing a position, we dont have to consider the delta in size and collateral, we just want to make sure the current position margin is safe.
+        collateralDelta = isOpen ? collateralDelta : 0;
+        sizeDelta = isOpen ? sizeDelta : 0;
+        
         if(subAccount.size == 0){
             return true;
         }
@@ -80,10 +84,7 @@ contract Position is Storage{
 
         //Collateral left in the position
         uint256 collateralUsd = (uint256(subAccount.collateral) + uint256(collateralDelta)).wmul(collateralPrice);
-        //for closing a position, we dont have to consider the delta in size and collateral, we just want to make sure the current position margin is safe.
-        collateralDelta = isOpen ? collateralDelta : 0;
-        sizeDelta = isOpen ? sizeDelta : 0;
-
+        
         return ((hasProfit ? collateralUsd + margin.muxPnlUsd - margin.muxFundingFeeUsd : collateralUsd - margin.muxPnlUsd - margin.muxFundingFeeUsd) >= margin.thresholdUsd.max(margin.liquidationFeeUsd));
     }
 
