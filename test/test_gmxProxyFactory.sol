@@ -66,37 +66,18 @@ contract TestProxyFactory is Test, Setup{
         _proxyFactory.setExchangeConfig(_exchangeId, gmxExchangeConfigs);
     }
 
-    function testGmxSetExchangeAssetConfig() public{
-        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
-        assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId, _wbtc), gmxExchangeAssetConfigs);
-
-        //Maintainer should be able to call the function
-        vm.prank(_maintainer);
-        _proxyFactory.setExchangeAssetConfig(_exchangeId + 1, _weth, gmxExchangeAssetConfigs);
-        assertEq(_proxyFactory.getExchangeAssetConfig(_exchangeId + 1, _weth), gmxExchangeAssetConfigs);
-
-        //Address which is not owner or maintiner of contract should not be able to call the getExchangeAssetConfig function
-        vm.expectRevert("OnlyMaintainerOrAbove");
-        vm.prank(address(0));
-        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
-    }
-
     function testGmxGetConfigVersions() public{
-        (uint32 exchangeConfigVersion, uint32 assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId, _wbtc);
+        uint32 exchangeConfigVersion = _proxyFactory.getConfigVersions(_exchangeId);
         assertEq(exchangeConfigVersion, 0);
-        assertEq(assetConfigVersion, 0);
 
-        (exchangeConfigVersion, assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId + 1, _weth);
+        exchangeConfigVersion = _proxyFactory.getConfigVersions(_exchangeId + 1);
         assertEq(exchangeConfigVersion, 0);
-        assertEq(assetConfigVersion, 0);
 
         //Updating asset and exchange config once again to check if the version is increasing
         _proxyFactory.setExchangeConfig(_exchangeId, gmxExchangeConfigs);
-        _proxyFactory.setExchangeAssetConfig(_exchangeId, _wbtc, gmxExchangeAssetConfigs);
 
-        (exchangeConfigVersion, assetConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId, _wbtc);
+        (exchangeConfigVersion) = _proxyFactory.getConfigVersions(_exchangeId);
         assertEq(exchangeConfigVersion, 1);
-        assertEq(assetConfigVersion, 1);
     }
 
     //The following test cases are not possible to write until we have an implementation contract live on mainnet / testnet

@@ -9,15 +9,8 @@ enum ExchangeConfigIds {
     REFERRAL_CODE,
     MARKET_ORDER_TIMEOUT_SECONDS,
     LIMIT_ORDER_TIMEOUT_SECONDS,
-    END
-}
-
-enum TokenConfigIds {
     INITIAL_MARGIN_RATE,
     MAINTENANCE_MARGIN_RATE,
-    LIQUIDATION_FEE_RATE,
-    REFERRENCE_ORACLE,
-    REFERRENCE_ORACLE_DEVIATION,
     END
 }
 
@@ -30,17 +23,8 @@ struct ExchangeConfigs {
     // ========================
     uint32 marketOrderTimeoutSeconds;
     uint32 limitOrderTimeoutSeconds;
-    bytes32[20] reserved;
-}
-
-struct TokenConfigs {
-    address referrenceOracle;
-    // --------------------------
-    uint32 referenceDeviation;
     uint32 initialMarginRate;
     uint32 maintenanceMarginRate;
-    uint32 liquidationFeeRate;
-    // --------------------------
     bytes32[20] reserved;
 }
 

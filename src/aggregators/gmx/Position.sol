@@ -129,7 +129,7 @@ contract Position  is Storage{
                 context.amountIn,
                 context.sizeUsd,
                 LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong),
-                _assetConfigs.initialMarginRate
+                _exchangeConfigs.initialMarginRate
             ),
             "ImMarginUnsafe"
         );
@@ -186,7 +186,7 @@ contract Position  is Storage{
                 0,
                 0,
                 LibGmx.getOraclePrice(_exchangeConfigs, _account.indexToken, !_account.isLong),
-                _assetConfigs.maintenanceMarginRate
+                _exchangeConfigs.maintenanceMarginRate
             ),
             "MmMarginUnsafe"
         );

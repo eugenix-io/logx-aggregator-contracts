@@ -8,11 +8,6 @@ enum ExchangeConfigIds {
     END
 }
 
-enum TokenConfigIds {
-    ID,
-    END
-}
-
 struct AccountState {
     address account;
     address collateralToken;
@@ -28,12 +23,6 @@ struct ExchangeConfigs {
     address orderBook;
     bytes32 referralCode;
     // ========================
-    bytes32[20] reserved;
-}
-
-struct TokenConfigs {
-    uint8 id;
-    // --------------------------
     bytes32[20] reserved;
 }
 

@@ -40,11 +40,9 @@ interface IGmxProxyFactory {
     function getProxyExchangeId(address proxy) external view returns(uint256);
     function getTradingProxy(bytes32 proxyId) external view returns(address);
     function getExchangeConfig(uint256 ExchangeId) external view returns (uint256[] memory);
-    function getExchangeAssetConfig(uint256 ExchangeId, address assetToken) external view returns (uint256[] memory);
     function upgradeTo(uint256 exchangeId, address newImplementation_) external;
     function setExchangeConfig(uint256 ExchangeId, uint256[] memory values) external;
-    function setExchangeAssetConfig(uint256 ExchangeId, address assetToken, uint256[] memory values) external;
-    function getConfigVersions(uint256 ExchangeId, address assetToken) external view returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion);
+    function getConfigVersions(uint256 ExchangeId) external view returns (uint32 exchangeConfigVersion);
     function setMaintainer(address maintainer, bool enable) external;
     function createProxy(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external returns (address);
     function openPosition(OpenPositionArgs calldata args) external payable;

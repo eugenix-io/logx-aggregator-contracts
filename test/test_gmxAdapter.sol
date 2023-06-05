@@ -53,7 +53,6 @@ contract TestGmxAdapter is Test, Setup{
         vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.implementation.selector), abi.encode(_gmxAdapterInstance));
         //Mock call to factory during _updateConfigs()
         vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getConfigVersions.selector), abi.encode(1, 1));
-        vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeAssetConfig.selector), abi.encode(gmxExchangeAssetConfigs));
         vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeConfig.selector), abi.encode(gmxExchangeConfigs));
         //Mock transferFrom calls to collateral tokens
         vm.mockCall(address(_wbtc), abi.encodeWithSelector(_erc20.transferFrom.selector), abi.encode());

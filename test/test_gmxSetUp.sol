@@ -13,7 +13,6 @@ contract Setup{
     uint256 _exchangeId = 1;
 
     uint256[] public gmxExchangeConfigs = new uint256[](7);
-    uint256[] public gmxExchangeAssetConfigs = new uint256[](5);
 
     function setUpGmxConfig() public{
         //GMX Exchange config details
@@ -24,12 +23,7 @@ contract Setup{
         gmxExchangeConfigs[4] = uint256(bytes32(bytes20(0x0000000000000000000000000000000000000000))); //GMX Referral Code
         gmxExchangeConfigs[5] = 120; //GMX market order time limit
         gmxExchangeConfigs[6] = 172800; //GMX limit order time limit
-
-        //GMX Asset config details (dummy values)
-        gmxExchangeAssetConfigs.push(0); // reference Oracle
-        gmxExchangeAssetConfigs.push(600); // reference Deviation
-        gmxExchangeAssetConfigs.push(500); // initial margin rate
-        gmxExchangeAssetConfigs.push(0); // maintainence margin rate
-        gmxExchangeAssetConfigs.push(3000); // liquidation fee rate
+        gmxExchangeConfigs.push(500); // initial margin rate
+        gmxExchangeConfigs.push(0); // maintainence margin rate
     }
 }

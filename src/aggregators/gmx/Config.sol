@@ -17,19 +17,12 @@ contract Config is Storage, Position{
     using EnumerableSetUpgradeable for EnumerableSetUpgradeable.Bytes32Set;
 
     function _updateConfigs() internal virtual{
-        address token = _account.indexToken;
-        (uint32 latestexchangeVersion, uint32 latestAssetVersion) = IGmxProxyFactory(_factory).getConfigVersions(
-            EXCHANGE_ID,
-            token
+        (uint32 latestexchangeVersion) = IGmxProxyFactory(_factory).getConfigVersions(
+            EXCHANGE_ID
         );
         if (_localexchangeVersion < latestexchangeVersion) {
             _updateexchangeConfigs();
             _localexchangeVersion = latestexchangeVersion;
-        }
-        // pull configs from factory
-        if (_localAssetVersions[token] < latestAssetVersion) {
-            _updateAssetConfigs();
-            _localAssetVersions[token] = latestAssetVersion;
         }
         _patch();
     }
@@ -56,6 +49,10 @@ contract Config is Storage, Position{
             .toU32();
         _exchangeConfigs.limitOrderTimeoutSeconds = values[uint256(ExchangeConfigIds.LIMIT_ORDER_TIMEOUT_SECONDS)]
             .toU32();
+        _exchangeConfigs.initialMarginRate = values[uint256(ExchangeConfigIds.INITIAL_MARGIN_RATE)]
+            .toU32();
+        _exchangeConfigs.maintenanceMarginRate = values[uint256(ExchangeConfigIds.MAINTENANCE_MARGIN_RATE)]
+            .toU32();
     }
 
     function _onGmxAddressUpdated(
@@ -78,16 +75,6 @@ contract Config is Storage, Position{
                 _removePendingOrder(key);
             }
         }
-    }
-
-    function _updateAssetConfigs() internal {
-        uint256[] memory values = IGmxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, _account.collateralToken);
-        require(values.length >= uint256(TokenConfigIds.END), "MissingConfigs");
-        _assetConfigs.initialMarginRate = values[uint256(TokenConfigIds.INITIAL_MARGIN_RATE)].toU32();
-        _assetConfigs.maintenanceMarginRate = values[uint256(TokenConfigIds.MAINTENANCE_MARGIN_RATE)].toU32();
-        _assetConfigs.liquidationFeeRate = values[uint256(TokenConfigIds.LIQUIDATION_FEE_RATE)].toU32();
-        _assetConfigs.referrenceOracle = values[uint256(TokenConfigIds.REFERRENCE_ORACLE)].toAddress();
-        _assetConfigs.referenceDeviation = values[uint256(TokenConfigIds.REFERRENCE_ORACLE_DEVIATION)].toU32();
     }
 
     // path  ToDo: remove me when deploy?

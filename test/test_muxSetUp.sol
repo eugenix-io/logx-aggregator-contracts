@@ -15,21 +15,11 @@ contract Setup{
     uint256 _exchangeId = 2;
 
     uint256[] public muxExchangeConfigs = new uint256[](3);
-    uint256[] public muxExchangeAssetConfigs_btc = new uint256[](1);
-    uint256[] public muxExchangeAssetConfigs_weth = new uint256[](1);
-    uint256[] public muxExchangeAssetConfigs_dai = new uint256[](1);
-    uint256[] public muxExchangeAssetConfigs_usdc = new uint256[](1);
 
     function setUpMuxConfig() public{
         //GMX Exchange config details
         muxExchangeConfigs[0] = uint256(bytes32(bytes20(0x3e0199792Ce69DC29A0a36146bFa68bd7C8D6633))); //MUX Liquidity Pool
         muxExchangeConfigs[1] = uint256(bytes32(bytes20(0xa19fD5aB6C8DCffa2A295F78a5Bb4aC543AAF5e3))); //MUX Order Book
         muxExchangeConfigs[2] = uint256(bytes32(bytes20(0x0000000000000000000000000000000000000000))); //GMX Referral Code
-
-        //GMX Asset config details (dummy values)
-        muxExchangeAssetConfigs_btc[0] = 4;
-        muxExchangeAssetConfigs_weth[0] = 3;
-        muxExchangeAssetConfigs_dai[0] = 2;
-        muxExchangeAssetConfigs_usdc[0] = 0;
     }
 }

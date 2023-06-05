@@ -39,10 +39,6 @@ contract TestMuxAdapter is Test, Setup{
         vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.implementation.selector), abi.encode(_muxAdapterInstance));
         //Mock call to factory during _updateConfigs()
         vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getConfigVersions.selector), abi.encode(1, 1));
-        vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeAssetConfig.selector, 2, _wbtc), abi.encode(muxExchangeAssetConfigs_btc));
-        vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeAssetConfig.selector, 2, _weth), abi.encode(muxExchangeAssetConfigs_weth));
-        vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeAssetConfig.selector, 2, _dai), abi.encode(muxExchangeAssetConfigs_dai));
-        vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeAssetConfig.selector, 2, _usdc), abi.encode(muxExchangeAssetConfigs_usdc));
         vm.mockCall(address(this), abi.encodeWithSelector(_proxyFactory.getExchangeConfig.selector), abi.encode(muxExchangeConfigs));
         //Mock transferFrom calls to collateral tokens
         vm.mockCall(address(_wbtc), abi.encodeWithSelector(_erc20.transferFrom.selector), abi.encode());

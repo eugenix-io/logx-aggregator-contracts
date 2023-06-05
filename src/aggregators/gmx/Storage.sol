@@ -17,7 +17,6 @@ contract Storage is Initializable {
     bytes32 internal _gmxPositionKey;
 
     ExchangeConfigs internal _exchangeConfigs;
-    TokenConfigs internal _assetConfigs;
 
     AccountState internal _account;
     EnumerableSetUpgradeable.Bytes32Set internal _pendingOrders;

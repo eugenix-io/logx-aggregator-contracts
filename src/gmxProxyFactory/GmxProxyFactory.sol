@@ -89,20 +89,16 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         return _exchangeConfigs[ExchangeId].values;
     }
 
-    function getExchangeAssetConfig(uint256 ExchangeId, address assetToken) external view returns (uint256[] memory) {
-        return _exchangeAssetConfigs[ExchangeId][assetToken].values;
-    }
-
     function getMainatinerStatus(address maintainer) external view returns(bool){
         return _maintainers[maintainer];
     }
 
-    function getConfigVersions(uint256 ExchangeId, address assetToken)
+    function getConfigVersions(uint256 ExchangeId)
         external
         view
-        returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion)
+        returns (uint32 exchangeConfigVersion)
     {
-        return _getLatestVersions(ExchangeId, assetToken);
+        return _getLatestVersions(ExchangeId);
     }
 
     // ======================== methods for contract management ========================
@@ -113,15 +109,6 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
     function setExchangeConfig(uint256 ExchangeId, uint256[] memory values) external {
         require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
         _setExchangeConfig(ExchangeId, values);
-    }
-
-    function setExchangeAssetConfig(
-        uint256 ExchangeId,
-        address assetToken,
-        uint256[] memory values
-    ) external {
-        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
-        _setExchangeAssetConfig(ExchangeId, assetToken, values);
     }
 
     function setMaintainer(address maintainer, bool enable) external onlyOwner {
