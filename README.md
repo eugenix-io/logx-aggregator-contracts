@@ -19,24 +19,26 @@ We still have two separate functions for opening and closing positions instead o
 #### PositionArgs
 ```solidity
 struct PositionArgs {
-   uint256 exchangeId;
-   address collateralToken;
-   address assetToken;
-   address profitToken;
-   bool isLong;
-   uint96 collateralAmount; // tokenIn.decimals
-   uint96 size; // 1e18
-   uint96 price; // 1e18
-   uint96 collateralPrice;
-   uint96 assetPrice;
-   uint8 flags; // MARKET, TRIGGER
-   bytes32 referralCode;
-   uint32 deadline;
+    uint256 exchangeId;
+    address collateralToken;
+    uint8 collateralId;
+    uint8 assetId;
+    uint8 profitTokenId;
+    bool isLong;
+    uint96 collateralAmount; // tokenIn.decimals
+    uint96 size; // 1e18
+    uint96 price; // 1e18
+    uint96 collateralPrice;
+    uint96 assetPrice;
+    uint8 flags; // MARKET, TRIGGER
+    bytes32 referralCode;
+    uint32 deadline;
 }
 ```
 1.  **exchangeId :** every exchange on logX aggregator has its own exchange ID. Used for creating an exchange adapter for the user's position. Currently, exchange ID for GMX is 0 and MUX is 1
 2. **collateralToken :** address of the token being used as collateral for the position. Used for creating an exchange adapter for the user's position. In the case of MUX, this is the token which will be deposited as collateral by the user (which is not the case with GMX - we will look into that shortly in this documentation). If the address supplied is not supported by the exchange, it might cause a revert while opening the position, therefore, the user has to make sure the collateral address supplied here is supported by the exchange.
-3. **assetToken :** address of the token being used as asset for the exchange. Used for creating an exchange adapter for the user's position. If the address supplied is not supported by the exchange, it might cause a revert while opening the position, therefore, the user has to make sure the collateral address supplied here is supported by the exchange.
+3. **collateralId :** MUX ID of the token being used as collateral for the position.
+3. **assetId :** MUX ID of the token being used as asset for the exchange. Used for creating an exchange adapter for the user's position. If the address supplied is not supported by the exchange, it might cause a revert while opening the position, therefore, the user has to make sure the collateral address supplied here is supported by the exchange.
 4. **profitToken :** address of the token in which the user wants to redeem profits. This address is only used while closing a Position. While opening a position on MUX, the profitToken will automatically be set to ‘0’ to avoid reverting on side of MUX.
 5. **isLong :** true if user wants to enter a long position else false.
 6. **collateralAmount :** Amount of the ‘collateralToken’ the user wants to deposit for opening the position. Collateral Amount for MUX Adapter should be denominated in terms of the decimals of the collateral token. 
@@ -98,20 +100,20 @@ function openPosition(OpenPositionArgs calldata args) external payable
 #### OpenPositionArgs
 ```solidity
 struct OpenPositionArgs {
-        uint256 exchangeId;
-        address collateralToken;
-        address assetToken;
-        bool isLong;
-        address tokenIn;
-        uint256 amountIn; // tokenIn.decimals
-        uint256 minOut; // collateral.decimals
-        uint256 sizeUsd; // 1e18
-        uint96 priceUsd; // 1e18
-        uint96 tpPriceUsd; // 1e18
-        uint96 slPriceUsd; // 1e18
-        uint8 flags; // MARKET, TRIGGER
-        bytes32 referralCode;
-    }
+    uint256 exchangeId;
+    address collateralToken;
+    address assetToken;
+    bool isLong;
+    address tokenIn;
+    uint256 amountIn; // tokenIn.decimals
+    uint256 minOut; // collateral.decimals
+    uint256 sizeUsd; // 1e18
+    uint96 priceUsd; // 1e18
+    uint96 tpPriceUsd; // 1e18
+    uint96 slPriceUsd; // 1e18
+    uint8 flags; // MARKET, TRIGGER
+    bytes32 referralCode;
+}
 ```
 1. **exchangeId :** every exchange on logX aggregator has its own exchange ID. Used for creating an exchange adapter for the user's position. Currently, exchange ID for GMX is 0 and MUX is 1
 2. **collateralTOken :** address of the token being used as collateral for the position. Used for creating an exchange adapter for the user's position. For a GMX Long Position, the collateral Token has to be same as assetToken, and collateral token cannot be a stable coin. For a Short Position, the collateral Token HAS to be a stable coin. We can determine which stable coin to use for a Short Position based on current swap fees between swapInToken and collateralToken.
@@ -145,18 +147,18 @@ function closePosition(ClosePositionArgs calldata args) external payable
 #### ClosePositionArgs
 ```solidity
 struct ClosePositionArgs {
-        uint256 exchangeId;
-        address collateralToken;
-        address assetToken;
-        bool isLong;
-        uint256 collateralUsd; // collateral.decimals
-        uint256 sizeUsd; // 1e18
-        uint96 priceUsd; // 1e18
-        uint96 tpPriceUsd; // 1e18
-        uint96 slPriceUsd; // 1e18
-        uint8 flags; // MARKET, TRIGGER
-        bytes32 referralCode;
-    }
+    uint256 exchangeId;
+    address collateralToken;
+    address assetToken;
+    bool isLong;
+    uint256 collateralUsd; // collateral.decimals
+    uint256 sizeUsd; // 1e18
+    uint96 priceUsd; // 1e18
+    uint96 tpPriceUsd; // 1e18
+    uint96 slPriceUsd; // 1e18
+    uint8 flags; // MARKET, TRIGGER
+    bytes32 referralCode;
+}
 ```
 **NOTE -** the following documentation only talks about the arguments which have not been talked about in OpenPositionArgs. If an argument is present in OpenPositionArgs and not discussed, the reader should assume the same applied here.
 
@@ -174,12 +176,12 @@ function getPendingOrderKeys(uint256 exchangeId, address collateralToken, addres
 #### OrderParams
 ```solidity
 struct OrderParams {
-        bytes32 orderKey;
-        uint256 collateralDelta;
-        uint256 sizeDelta;
-        uint256 triggerPrice;
-        bool triggerAboveThreshold;
-    }
+    bytes32 orderKey;
+    uint256 collateralDelta;
+    uint256 sizeDelta;
+    uint256 triggerPrice;
+    bool triggerAboveThreshold;
+}
 ```
 1. **orderKey :** key of the order we want to update.
 2. **collateralDelta :** additional increase / decrease in collateral amount for position. collateralDelta has to be denominated in 1e18.
