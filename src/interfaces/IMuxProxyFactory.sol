@@ -58,7 +58,7 @@ interface IMuxProxyFactory {
 
     function getMainatinerStatus(address maintainer) external view returns(bool);
 
-    function getConfigVersions(uint256 ExchangeId, address assetToken) external view returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion);
+    function getConfigVersions(uint256 ExchangeId) external view returns (uint32 exchangeConfigVersion);
 
     function upgradeTo(uint256 exchangeId, address newImplementation_) external;
 

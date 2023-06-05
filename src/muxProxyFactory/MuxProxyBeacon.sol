@@ -13,8 +13,8 @@ contract MuxProxyBeacon is  MuxStorage, IBeacon{
         bytes32 proxyId,
         address owner,
         address proxy,
-        address assetToken,
-        address collateralToken,
+        uint8 assetId,
+        uint8 collateralId,
         bool isLong
     );
 
@@ -53,25 +53,27 @@ contract MuxProxyBeacon is  MuxStorage, IBeacon{
     function _createBeaconProxy(
         uint256 exchangeId,
         address account,
-        address assetToken,
         address collateralToken,
+        uint8 assetId,
+        uint8 collateralId,
         bool isLong
     ) internal returns (address) {
-        bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, assetToken, isLong);
+        bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, collateralId, assetId, isLong);
         require(_tradingProxies[proxyId] == address(0), "AlreadyCreated");
         bytes memory initData = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,address,bool)",
+            "initialize(uint256,address,address,uint8,uint8,bool)",
             exchangeId,
             account,
             collateralToken,
-            assetToken,
+            collateralId,
+            assetId,
             isLong
         );
         bytes memory bytecode = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(address(this), initData));
         address proxy = _createProxy(exchangeId, proxyId, bytecode);
         _tradingProxies[proxyId] = proxy;
         _ownedProxies[account].push(proxy);
-        emit CreateProxy(exchangeId, proxyId, account, proxy, assetToken, collateralToken, isLong);
+        emit CreateProxy(exchangeId, proxyId, account, proxy, assetId, collateralId, isLong);
         return proxy;
     }
 
@@ -83,10 +85,11 @@ contract MuxProxyBeacon is  MuxStorage, IBeacon{
     function _makeProxyId(
         uint256 exchangeId_,
         address account_,
-        address collateralToken_,
-        address assetToken_,
+        address collateralToken,
+        uint8 collateralId_,
+        uint8 assetId_,
         bool isLong_
     ) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(exchangeId_, account_, collateralToken_, assetToken_, isLong_));
+        return keccak256(abi.encodePacked(exchangeId_, account_, collateralToken,collateralId_, assetId_, isLong_));
     }
 }

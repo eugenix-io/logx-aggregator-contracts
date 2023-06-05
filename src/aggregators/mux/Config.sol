@@ -16,19 +16,12 @@ contract Config is Storage, Position{
     using LibUtils for uint256;
 
     function _updateConfigs() internal virtual{
-        address token = _account.indexToken;
-        (uint32 latestexchangeVersion, uint32 latestAssetVersion) = IMuxProxyFactory(_factory).getConfigVersions(
-            EXCHANGE_ID,
-            token
+        (uint32 latestexchangeVersion) = IMuxProxyFactory(_factory).getConfigVersions(
+            EXCHANGE_ID
         );
         if (_localexchangeVersion < latestexchangeVersion) {
             _updateexchangeConfigs();
             _localexchangeVersion = latestexchangeVersion;
-        }
-        // pull configs from factory
-        if (_localAssetVersions[token] < latestAssetVersion) {
-            _updateAssetConfigs();
-            _localAssetVersions[token] = latestAssetVersion;
         }
     }
 
@@ -57,21 +50,5 @@ contract Config is Storage, Position{
                 _removePendingOrder(key);
             }
         }
-    }
-
-    function _updateAssetConfigs() internal {
-        uint256[] memory indexValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, _account.indexToken);
-        require(indexValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
-        _assetConfigs.id = indexValues[uint256(TokenConfigIds.ID)].toU8();
-
-        uint256[] memory collateralValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, _account.collateralToken);
-        require(collateralValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
-        _collateralConfigs.id = collateralValues[uint256(TokenConfigIds.ID)].toU8();
-    }
-
-    function getTokenId(address tokenAddress) internal view returns(uint8 tokenId){
-        uint256[] memory tokenValues = IMuxProxyFactory(_factory).getExchangeAssetConfig(EXCHANGE_ID, tokenAddress);
-        require(tokenValues.length >= uint256(TokenConfigIds.END), "MissingConfigs");
-        tokenId = tokenValues[uint256(TokenConfigIds.ID)].toU8();
     }
 }

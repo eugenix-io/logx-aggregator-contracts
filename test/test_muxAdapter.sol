@@ -22,8 +22,8 @@ contract TestMuxAdapter is Test, Setup{
     IMuxAggregator private _muxAdapterProxyShort;
     MuxAdapter private _muxAdapterInstance;
 
-    event OpenPosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
-    event ClosePosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
+    event OpenPosition(uint8 collateralId, uint8 indexId, bool isLong, PositionContext context);
+    event ClosePosition(uint8 collateralId, uint8 indexId, bool isLong, PositionContext context);
     event Withdraw(
         address collateralAddress,
         address account,
@@ -51,13 +51,14 @@ contract TestMuxAdapter is Test, Setup{
         // ----------- Long Position Initialization ----------------
         address proxyLong;
         //for long position on GMX, the collateral and asset token are the same.
-        bytes32 proxyIdLong = keccak256(abi.encodePacked(_exchangeId, _account, _wbtc, _wbtc, _wbtc, true));
+        bytes32 proxyIdLong = keccak256(abi.encodePacked(_exchangeId, _account, _wbtc, uint8(4), uint8(4), true));
         bytes memory initDataLong = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,bool)",
+            "initialize(uint256,address,address,uint8,uint8,bool)",
             _exchangeId,
             _account,
             _wbtc,
-            _wbtc,
+            uint8(4),
+            uint8(4),
             true
         );
         bytes memory bytecodeLong = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(address(this), initDataLong));
@@ -71,13 +72,14 @@ contract TestMuxAdapter is Test, Setup{
         // ----------- Short Position Initialization ----------------
         address proxyShort;
         //for short position on GMX, the collateral token is always a stable coin.
-        bytes32 proxyIdShort = keccak256(abi.encodePacked(_exchangeId, _account, _dai, _weth, false));
+        bytes32 proxyIdShort = keccak256(abi.encodePacked(_exchangeId, _account, _dai, uint8(2), uint8(3), false));
         bytes memory initDataShort = abi.encodeWithSignature(
-            "initialize(uint256,address,address,address,bool)",
+            "initialize(uint256,address,address,uint8,uint8,bool)",
             _exchangeId,
             _account,
             _dai,
-            _weth,
+            uint8(2),
+            uint8(3),
             false
         );
         bytes memory bytecodeShort = abi.encodePacked(type(BeaconProxy).creationCode, abi.encode(address(this), initDataShort));
@@ -93,13 +95,15 @@ contract TestMuxAdapter is Test, Setup{
         AccountState memory currentAccountLong = _muxAdapterProxyLong.accountState();
         assertEq(currentAccountLong.account, _account);
         assertEq(currentAccountLong.collateralToken, _wbtc);
-        assertEq(currentAccountLong.indexToken, _wbtc);
+        assertEq(currentAccountLong.collateralId, uint8(4));
+        assertEq(currentAccountLong.indexId, uint8(4));
         assertEq(currentAccountLong.isLong, true);
 
         AccountState memory currentAccountShort = _muxAdapterProxyShort.accountState();
         assertEq(currentAccountShort.account, _account);
         assertEq(currentAccountShort.collateralToken, _dai);
-        assertEq(currentAccountShort.indexToken, _weth);
+        assertEq(currentAccountShort.collateralId, uint8(2));
+        assertEq(currentAccountShort.indexId, uint8(3));
         assertEq(currentAccountShort.isLong, false);
     }
 
@@ -113,15 +117,15 @@ contract TestMuxAdapter is Test, Setup{
         uint8 flags = 0x80 + 0x40; //Open Position Order | Market Order
         PositionContext memory openOrderContext;
         vm.expectEmit(true, true, true, false);
-        emit OpenPosition(_wbtc, _wbtc, true, openOrderContext);
+        emit OpenPosition(uint8(4), uint8(4), true, openOrderContext);
         //Placing a long open position order with collateral of 0.18 BTC and size $600. price is 0 since it is a Market Order, price of both asset and collateral (BTC) is given as $26451.3 and profitToken is USDC
-        _muxAdapterProxyLong.placePositionOrder(_wbtc, 18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 26451300000000000000000, 0, true, _usdc, extra);
+        _muxAdapterProxyLong.placePositionOrder(18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 26451300000000000000000, 0, true, uint8(0), extra);
 
         flags = 0x80; //Open Position Order | limit Order
         vm.expectEmit(true, true, true, false);
-        emit OpenPosition(_dai, _weth, false, openOrderContext);
+        emit OpenPosition(uint8(2), uint8(3), false, openOrderContext);
         //Placing a short open position order with collateral of 18 DAI and size $600. price is $20451.3 for the Limit Order, price of asset (BTC) is given as $26451.3, collateral price (DAI) at $1 and profitToken is USDC
-        _muxAdapterProxyShort.placePositionOrder(_dai, 180000000000000000000, 600000000000000000000, 20451300000000000000000, flags, 26451300000000000000000, 1000000000000000000, uint32(block.timestamp+10), false, _usdc, extra);
+        _muxAdapterProxyShort.placePositionOrder(180000000000000000000, 600000000000000000000, 20451300000000000000000, flags, 26451300000000000000000, 1000000000000000000, uint32(block.timestamp+10), false, uint8(0), extra);
 
         flags = 0x80 + 0x08; //Open Position Order | TPSL Order
         //Take Profit price for BTC at $28451.2 and Stop Loss price for BTC at 24451.2
@@ -132,9 +136,9 @@ contract TestMuxAdapter is Test, Setup{
             tpslDeadline : uint32(block.timestamp+100)
         });
         vm.expectEmit(true, true, true, false);
-        emit OpenPosition(_wbtc, _wbtc, true, openOrderContext);
+        emit OpenPosition(uint8(4), uint8(4), true, openOrderContext);
         //Placing a long open position position with collateral of 0.18 BTC and size $600. price is 0 for the TPSL Order, price of both asset and collateral (BTC) is given as $26451.3 and profitToken is USDC
-        _muxAdapterProxyLong.placePositionOrder(_wbtc, 18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+100), true, _usdc, extra);
+        _muxAdapterProxyLong.placePositionOrder(18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+100), true, uint8(0), extra);
     }
 
     function testMuxAdapterClosePosition() public{
@@ -147,15 +151,15 @@ contract TestMuxAdapter is Test, Setup{
         uint8 flags = 0x40; //Open Position Order | Market Order
         PositionContext memory closeOrderContext;
         vm.expectEmit(true, true, true, false);
-        emit ClosePosition(_wbtc, _wbtc, true, closeOrderContext);
+        emit ClosePosition(uint8(4), uint8(4), true, closeOrderContext);
         //Placing a long close position order with collateral of 0.18 BTC and size $600. price is 0 since it is a Market Order, price of both asset and collateral (BTC) is given as $26451.3 and profitToken is USDC
-        _muxAdapterProxyLong.placePositionOrder(_wbtc, 18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 1000000000000000000, 0, true, _wbtc, extra);
+        _muxAdapterProxyLong.placePositionOrder(18000000, 600000000000000000000, 0, flags, 26451300000000000000000, 1000000000000000000, 0, true, uint8(4), extra);
 
         flags = 0x0; //Open Position Order | limit Order
         vm.expectEmit(true, true, true, false);
-        emit ClosePosition(_dai, _weth, false, closeOrderContext);
+        emit ClosePosition(uint8(2), uint8(3), false, closeOrderContext);
         //Placing a short close position order with collateral of 18 DAI and size $600. price is $20451.3 for the Limit Order, price of asset (BTC) is given as $26451.3, collateral price (DAI) at $1 and profitToken is USDC
-        _muxAdapterProxyShort.placePositionOrder(_dai, 180000000000000000000, 600000000000000000000, 28451300000000000000000, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, _weth, extra);
+        _muxAdapterProxyShort.placePositionOrder(180000000000000000000, 600000000000000000000, 28451300000000000000000, flags, 26451300000000000000000, 26451300000000000000000, uint32(block.timestamp+10), false, uint8(3), extra);
 
         //Test Cancel Orders
         uint64[] memory ordersBefore = _muxAdapterProxyLong.getPendingOrderKeys();
@@ -177,7 +181,13 @@ contract TestMuxAdapter is Test, Setup{
     }
 
     function testMuxAdapterGetSubAccountId() public{
-        bytes32 requiredSubAccountId = 0xb6D3e86660A5613D9797A39E8A779D1A4525c945040401000000000000000000;
+        //0xC34eA1F3114977Cb9Ed364dA50D6fBE5feB32Ee9
+        bytes32 requiredSubAccountId = bytes32(
+            (uint256(uint160(address(_muxAdapterProxyLong))) << 96) |
+            (uint256(uint8(4)) << 88) |
+            (uint256(uint8(4)) << 80) |
+            (uint256(1) << 72)
+        );
         bytes32 muxSubAccountId = _muxAdapterProxyLong.getSubAccountId();
         assertEq(muxSubAccountId, requiredSubAccountId);
     }

@@ -45,7 +45,8 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         uint256 exchangeId,
         address account,
         address collateralToken,
-        address assetToken,
+        uint8 collateralId,
+        uint8 assetId,
         bool isLong
     ) external initializer onlyDelegateCall {
         require(exchangeId == EXCHANGE_ID, "Invalidexchange");
@@ -54,7 +55,8 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
 
         _account.account = account;
         _account.collateralToken = collateralToken;
-        _account.indexToken = assetToken;
+        _account.collateralId = collateralId;
+        _account.indexId = assetId;
         _account.isLong = isLong;
         _updateConfigs();
         _subAccountId = encodeSubAccountId(isLong);
@@ -70,19 +72,16 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
 
     function encodeSubAccountId(bool isLong) internal view returns (bytes32)
     {
-        uint8 collateralId = _collateralConfigs.id;
-        uint8 assetId = _assetConfigs.id;
         return bytes32(
             (uint256(uint160(address(this))) << 96) |
-            (uint256(collateralId) << 88) |
-            (uint256(assetId) << 80) |
+            (uint256(_account.collateralId) << 88) |
+            (uint256(_account.indexId) << 80) |
             (uint256(isLong ? 1 : 0) << 72)
         );
     }
 
     /// @notice Place a openning request on MUX.
     function placePositionOrder(
-        address collateralToken,
         uint96 collateralAmount, // tokenIn.decimals
         uint96 size, // 1e18
         uint96 price, // 1e18
@@ -91,14 +90,13 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         uint96 collateralPrice, // 1e18
         uint32 deadline,
         bool isLong,
-        address profitToken,
+        uint8 profitTokenId,
         PositionOrderExtra memory extra
     ) external payable onlyTraderOrFactory nonReentrant {
 
         _updateConfigs();
         _cleanOrders();
 
-        uint8 profitTokenId;
         uint32 positionDeadline;
         uint96 positionPrice;
 
@@ -113,14 +111,11 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
 
         //For an open order, if the profitTokenId is zero, transaction will fail on MUX side
         if((flags & POSITION_OPEN) != 0){
-            profitTokenId = 0;
             //We will not have to deposit or give the approvals for close position
-            if (collateralToken == _WETH) {
+            if (_account.collateralToken == _WETH) {
                 IWETH(_WETH).deposit{ value: collateralAmount }();
             }
             IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.orderBook, collateralAmount);
-        }else{
-            profitTokenId = getTokenId(profitToken);
         }
 
         PositionContext memory context = PositionContext({

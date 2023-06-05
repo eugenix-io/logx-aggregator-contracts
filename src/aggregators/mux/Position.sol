@@ -23,8 +23,8 @@ contract Position is Storage{
     event RemovePendingOrder(uint64 orderId);
     event CancelOrder(uint64 orderId, bool success);
 
-    event OpenPosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
-    event ClosePosition(address collateralToken, address indexToken, bool isLong, PositionContext context);
+    event OpenPosition(uint8 collateralId, uint8 indexId, bool isLong, PositionContext context);
+    event ClosePosition(uint8 collateralId, uint8 indexId, bool isLong, PositionContext context);
 
     function _hasPendingOrder(uint64 key) internal view returns (bool) {
         return _pendingOrdersContains(key);
@@ -63,12 +63,12 @@ contract Position is Storage{
         //for closing a position, we dont have to consider the delta in size and collateral, we just want to make sure the current position margin is safe.
         collateralDelta = isOpen ? collateralDelta : 0;
         sizeDelta = isOpen ? sizeDelta : 0;
-        
+
         if(subAccount.size == 0){
             return true;
         }
         Margin memory margin;
-        margin.asset = IMuxGetter(_exchangeConfigs.liquidityPool).getAssetInfo(_assetConfigs.id);
+        margin.asset = IMuxGetter(_exchangeConfigs.liquidityPool).getAssetInfo(_account.indexId);
         bool hasProfit;
         if (subAccount.size != 0) {
             (hasProfit, margin.muxPnlUsd) = LibMux._positionPnlUsd(margin.asset, subAccount, isLong, subAccount.size, assetPrice); 
@@ -117,10 +117,10 @@ contract Position is Storage{
 
         if(isOpen){
             _addPendingOrder(LibMux.OrderCategory.OPEN, startOrderCount, endOrderCount, context.subAccountId);
-            emit OpenPosition(_account.collateralToken, _account.indexToken, context.isLong, context);
+            emit OpenPosition(_account.collateralId, _account.indexId, context.isLong, context);
         }else{
             _addPendingOrder(LibMux.OrderCategory.CLOSE, startOrderCount, endOrderCount, context.subAccountId);
-            emit ClosePosition(_account.collateralToken, _account.indexToken, context.isLong, context);
+            emit ClosePosition(_account.collateralId, _account.indexId, context.isLong, context);
         }
     }
 

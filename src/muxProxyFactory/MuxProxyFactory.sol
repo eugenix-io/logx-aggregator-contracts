@@ -20,8 +20,9 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
     struct PositionArgs {
         uint256 exchangeId;
         address collateralToken;
-        address assetToken;
-        address profitToken;
+        uint8 collateralId;
+        uint8 assetId;
+        uint8 profitTokenId;
         bool isLong;
         uint96 collateralAmount; // tokenIn.decimals
         uint96 size; // 1e18
@@ -67,20 +68,16 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         return _exchangeConfigs[ExchangeId].values;
     }
 
-    function getExchangeAssetConfig(uint256 ExchangeId, address assetToken) external view returns (uint256[] memory) {
-        return _exchangeAssetConfigs[ExchangeId][assetToken].values;
-    }
-
     function getMainatinerStatus(address maintainer) external view returns(bool){
         return _maintainers[maintainer];
     }
 
-    function getConfigVersions(uint256 ExchangeId, address assetToken)
+    function getConfigVersions(uint256 ExchangeId)
         external
         view
-        returns (uint32 ExchangeConfigVersion, uint32 assetConfigVersion)
+        returns (uint32 ExchangeConfigVersion)
     {
-        return _getLatestVersions(ExchangeId, assetToken);
+        return _getLatestVersions(ExchangeId);
     }
 
     // ======================== methods for contract management ========================
@@ -93,15 +90,6 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         _setExchangeConfig(ExchangeId, values);
     }
 
-    function setExchangeAssetConfig(
-        uint256 ExchangeId,
-        address assetToken,
-        uint256[] memory values
-    ) external {
-        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
-        _setExchangeAssetConfig(ExchangeId, assetToken, values);
-    }
-
     function setMaintainer(address maintainer, bool enable) external onlyOwner {
         _maintainers[maintainer] = enable;
         emit SetMaintainer(maintainer, enable);
@@ -111,24 +99,26 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
     function createProxy(
         uint256 exchangeId,
         address collateralToken,
-        address assetToken,
+        uint8 collateralId,
+        uint8 assetId,
         bool isLong
     ) public returns (address) {
         return
             _createBeaconProxy(
                 exchangeId,
                 msg.sender,
-                assetToken,
                 collateralToken,
+                assetId,
+                collateralId,
                 isLong
             );
     }
 
     function openPosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable {
-        bytes32 proxyId = _makeProxyId(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
+        bytes32 proxyId = _makeProxyId(args.exchangeId, msg.sender, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         address proxy = _tradingProxies[proxyId];
         if (proxy == address(0)) {
-            proxy = createProxy(args.exchangeId, args.collateralToken, args.assetToken, args.isLong);
+            proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, args.collateralAmount);
@@ -137,7 +127,6 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         }
 
         IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
-            args.collateralToken,
             args.collateralAmount,
             args.size,
             args.price,
@@ -146,16 +135,15 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             args.collateralPrice,
             args.deadline,
             args.isLong,
-            args.profitToken,
+            args.profitTokenId,
             extra
         );
     }
 
     function closePosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable {
-        address proxy = _mustGetProxy(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
+        address proxy = _mustGetProxy(args.exchangeId, msg.sender, args.collateralToken, args.collateralId, args.assetId, args.isLong);
 
         IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
-            args.collateralToken,
             args.collateralAmount,
             args.size,
             args.price,
@@ -164,7 +152,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             args.collateralPrice,
             args.deadline,
             args.isLong,
-            args.profitToken,
+            args.profitTokenId,
             extra
         );
     }
@@ -172,15 +160,16 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
     function cancelOrders(
         uint256 exchangeId,
         address collateralToken,
-        address assetToken,
+        uint8 collateralId,
+        uint8 assetId,
         bool isLong,
         uint64[] calldata keys
     ) external {
-        IMuxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).cancelOrders(keys);
+        IMuxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, collateralId, assetId, isLong)).cancelOrders(keys);
     }
 
-    function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view returns(uint64[] memory){
-        return IMuxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).getPendingOrderKeys();
+    function getPendingOrderKeys(uint256 exchangeId, address collateralToken, uint8 collateralId, uint8 assetId, bool isLong) external view returns(uint64[] memory){
+        return IMuxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, collateralId, assetId, isLong)).getPendingOrderKeys();
     }
 
     // ======================== Utility methods ========================
@@ -188,10 +177,11 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         uint256 exchangeId,
         address account,
         address collateralToken,
-        address assetToken,
+        uint8 collateralId,
+        uint8 assetId,
         bool isLong
     ) internal view returns (address proxy) {
-        bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, assetToken, isLong);
+        bytes32 proxyId = _makeProxyId(exchangeId, account, collateralToken, collateralId, assetId, isLong);
         proxy = _tradingProxies[proxyId];
         require(proxy != address(0), "ProxyNotExist");
     }

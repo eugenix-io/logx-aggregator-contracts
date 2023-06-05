@@ -20,9 +20,6 @@ contract MuxStorage is Initializable{
     mapping(address => address[]) internal _ownedProxies;
     //mapping Exchange ID to Exchange Config Data
     mapping(uint256 => ConfigData) internal _exchangeConfigs;
-    //mapping Exchange ID to a map of the asset's address and asset's config data.
-    mapping(uint256 => mapping(address => ConfigData)) internal _exchangeAssetConfigs;
-
 
     //mapping to identify maintainers of proxy factory
     mapping(address => bool) _maintainers;

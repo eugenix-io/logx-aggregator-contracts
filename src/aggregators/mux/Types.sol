@@ -16,7 +16,8 @@ enum TokenConfigIds {
 struct AccountState {
     address account;
     address collateralToken;
-    address indexToken; // 160
+    uint8 collateralId;
+    uint8 indexId; // 160
     address profitToken;
     bool isLong; // 8
     bytes32[20] reserved;

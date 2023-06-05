@@ -6,11 +6,11 @@ import "../aggregators/mux/Types.sol";
 interface IMuxAggregator {
 
     function initialize(
-        uint256 projectId,
+        uint256 exchangeId,
         address account,
         address collateralToken,
-        address assetToken,
-        address profitToken,
+        uint8 collateralId,
+        uint8 assetId,
         bool isLong
     ) external;
 
@@ -19,7 +19,6 @@ interface IMuxAggregator {
     function getSubAccountId() external view returns(bytes32);
 
     function placePositionOrder(
-        address collateralToken,
         uint96 collateralAmount, // tokenIn.decimals
         uint96 size, // 1e18
         uint96 price, // 1e18
@@ -28,7 +27,7 @@ interface IMuxAggregator {
         uint96 collateralPrice, // 1e18
         uint32 deadline,
         bool isLong,
-        address profitToken,
+        uint8 profitTokenId,
         PositionOrderExtra memory extra
     ) external payable;
     

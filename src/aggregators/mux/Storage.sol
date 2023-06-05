@@ -17,8 +17,6 @@ contract Storage is Initializable{
 
     AccountState internal _account;
     ExchangeConfigs internal _exchangeConfigs;
-    TokenConfigs internal _assetConfigs;
-    TokenConfigs internal _collateralConfigs;
 
     uint64[] internal _pendingOrders;
 
