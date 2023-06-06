@@ -21,13 +21,13 @@ contract Config is Storage, Position{
             EXCHANGE_ID
         );
         if (_localexchangeVersion < latestexchangeVersion) {
-            _updateexchangeConfigs();
+            _updateExchangeConfigs();
             _localexchangeVersion = latestexchangeVersion;
         }
         _patch();
     }
 
-    function _updateexchangeConfigs() internal {
+    function _updateExchangeConfigs() internal {
         uint256[] memory values = IGmxProxyFactory(_factory).getExchangeConfig(EXCHANGE_ID);
         require(values.length >= uint256(ExchangeConfigIds.END), "MissingConfigs");
 

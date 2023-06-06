@@ -172,6 +172,18 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         return IMuxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, collateralId, assetId, isLong)).getPendingOrderKeys();
     }
 
+    function withdraw(
+        uint256 exchangeId,
+        address account,
+        address collateralToken,
+        uint8 collateralId,
+        uint8 assetId,
+        bool isLong
+    ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        IMuxAggregator(_mustGetProxy(exchangeId, account, collateralToken, collateralId, assetId, isLong)).withdraw();
+    }
+
     // ======================== Utility methods ========================
     function _mustGetProxy(
         uint256 exchangeId,

@@ -49,4 +49,5 @@ interface IGmxProxyFactory {
     function closePosition(ClosePositionArgs calldata args) external payable;
     function cancelOrders(uint256 exchangeId, address collateralToken, address assetToken, bool isLong, bytes32[] calldata keys) external;
     function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view  returns(bytes32[] memory);
+    function withdraw(uint256 exchangeId, address account, address collateralToken, address assetToken, bool isLong) external;
 }

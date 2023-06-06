@@ -77,4 +77,6 @@ interface IMuxProxyFactory {
     function cancelOrders(uint256 exchangeId, address collateralToken, address assetToken, bool isLong, bytes32[] calldata keys) external;
 
     function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view returns(uint64[] memory);
+
+    function withdraw(uint256 exchangeId, address account, address collateralToken, uint8 collateralId, uint8 assetId, bool isLong) external;
 }

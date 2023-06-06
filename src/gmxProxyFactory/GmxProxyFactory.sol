@@ -202,6 +202,17 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         return IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).getPendingOrderKeys();
     }
 
+    function withdraw(
+        uint256 exchangeId,
+        address account,
+        address collateralToken,
+        address assetToken,
+        bool isLong
+    ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        IGmxAggregator(_mustGetProxy(exchangeId, account, collateralToken, assetToken, isLong)).withdraw();
+    }
+
     // ======================== Methods called by maintainer ========================
 
     function cancelTimeoutOrders(

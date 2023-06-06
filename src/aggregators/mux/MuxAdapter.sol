@@ -109,7 +109,7 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
             positionPrice = price;
         }
 
-        //For an open order, if the profitTokenId is zero, transaction will fail on MUX side
+        //For an open order, if the profitTokenId is not zero, transaction will fail on MUX side
         if((flags & POSITION_OPEN) != 0){
             //We will not have to deposit or give the approvals for close position
             if (_account.collateralToken == _WETH) {
