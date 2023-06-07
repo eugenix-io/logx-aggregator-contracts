@@ -151,6 +151,7 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         _cleanOrders();
 
         uint256 ethBalance = address(this).balance;
+        /*Anirudh coms - _transferToUser mentioned below seems able to handle for both eth and erc20 we can use it here*/
         if (ethBalance > 0) {
             if (_account.collateralToken == _WETH) {
                 IWETH(_WETH).deposit{ value: ethBalance }();
@@ -158,11 +159,15 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
                 AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
             }
         }
+        /*Anirudh coms - can put the whole below code in else I think, because the a subaccount either gets eth or erc20 not both right. NW if 
+                            you to keep it same as well */
         uint256 balance = IERC20Upgradeable(_account.collateralToken).balanceOf(address(this));
         //ToDo - should we check if margin is safe if the position size != 0?
+        /*Anirudh coms - this todo can be removed I think, no need for margin check because the position is already closed*/
         if (balance > 0) {
             _transferToUser(balance);
         }
+        /*Anirudh coms - Below in withdraw event we are sending balance what about the case where ethBalance !=0 and balance=0*/
         emit Withdraw(
             _account.collateralToken,
             _account.account,

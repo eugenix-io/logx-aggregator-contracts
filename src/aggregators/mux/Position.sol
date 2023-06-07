@@ -71,6 +71,7 @@ contract Position is Storage{
         margin.asset = IMuxGetter(_exchangeConfigs.liquidityPool).getAssetInfo(_account.indexId);
         bool hasProfit;
         if (subAccount.size != 0) {
+            /*why are we sending subAccount and subAccount.size separately?*/
             (hasProfit, margin.muxPnlUsd) = LibMux._positionPnlUsd(margin.asset, subAccount, isLong, subAccount.size, assetPrice); 
             margin.muxFundingFeeUsd = LibMux._getFundingFeeUsd(subAccount, margin.asset, isLong, assetPrice);
         }
@@ -161,7 +162,10 @@ contract Position is Storage{
                 break;
             }
         }
-
+        /*anirudh coms - why can't we just swap with last element and do pop?
+                        should the initial ordering of elements in aray need
+                        to be maintained?
+        */
         if (found) {
             for (; i < _pendingOrders.length-1; i++) {
                 _pendingOrders[i] = _pendingOrders[i+1];

@@ -30,6 +30,11 @@ library LibMux {
         }
         uint256 cumulativeFunding;
         if (isLong) {
+            /*Anirudh coms- Two things here\
+                1. logic seems to be off here. why are we subtracting entryFunding from funding rate. First we need
+                    to do fundingRate*assetPrice and then subtract entryFunding not the otherway around.
+                2. why are we having different logic for longs and shorts? I know you don't have much choice
+                    because of the way asset type is declared but any reason they mentioned why MUX has this way?*/
             cumulativeFunding = asset.longCumulativeFundingRate - subAccount.entryFunding;
             cumulativeFunding = cumulativeFunding.wmul(assetPrice);
         } else {
@@ -42,7 +47,7 @@ library LibMux {
         Asset memory asset,
         SubAccount memory subAccount,
         bool isLong,
-        uint96 amount,
+        uint96 amount,/*Anirudh coms- why amount separately? we can use subAccount.size*/
         uint96 assetPrice
     ) internal view returns (bool hasProfit, uint96 pnlUsd) {
         if (amount == 0) {
@@ -55,7 +60,10 @@ library LibMux {
             : subAccount.entryPrice - assetPrice;
         if (
             hasProfit &&
+            /*Anirudh coms- the logic here is that we want sometime to pass after the position is increased
+                            before we calculate the pnl of a subaccount so it should be '>' instead of '<'*/
             _blockTimestamp() < subAccount.lastIncreasedTime + asset.minProfitTime &&
+            /*Anirudh coms- I think we should multiply priceDelta by 1e5 before comparing. minProfitRate is in 1e5*/
             priceDelta < uint256(subAccount.entryPrice).rmul(asset.minProfitRate).safeUint96()
         ) {
             hasProfit = false;
@@ -103,6 +111,7 @@ library LibMux {
         order.placeOrderTime = uint32(bytes4(data[1] << 160));
     }
 
+    /*Anirudh coms- we can remove this one and use below one I think*/
     function cancelOrder(ExchangeConfigs memory _exchangeConfigs, uint64 orderId) internal returns(bool success){
         IMuxOrderBook(_exchangeConfigs.orderBook).cancelOrder(orderId);
         success = true;

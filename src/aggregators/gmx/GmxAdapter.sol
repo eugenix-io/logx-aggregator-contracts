@@ -345,6 +345,10 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
     }
 
     function _cleanOrders() internal {
+        /*anirudh - what are these pending orders exactly? 
+                    1. are these the orders waiting to be executed by keeper bots?
+                    2. are these trigger
+        */
         bytes32[] memory pendingKeys = _pendingOrders.values();
         for (uint256 i = 0; i < pendingKeys.length; i++) {
             bytes32 key = pendingKeys[i];

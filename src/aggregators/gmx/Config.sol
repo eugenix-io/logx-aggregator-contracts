@@ -71,6 +71,7 @@ contract Config is Storage, Position{
                 _removePendingOrder(key);
             }
             if (cancelOrderBook) {
+                //anirudh coms - should this be previousOrderBook
                 LibGmx.cancelOrderFromOrderBook(newOrderBook, key);
                 _removePendingOrder(key);
             }
