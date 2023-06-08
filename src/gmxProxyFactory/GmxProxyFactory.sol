@@ -8,13 +8,13 @@ import "../../lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpg
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
-import "../interfaces/IAggregator.sol";
+import "../interfaces/IGmxAggregator.sol";
 
-import "./Storage.sol";
-import "./ProxyBeacon.sol";
-import "./ProxyConfig.sol";
+import "./GmxStorage.sol";
+import "./GmxProxyBeacon.sol";
+import "./GmxProxyConfig.sol";
 
-contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
+contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     struct OpenPositionArgs {
@@ -25,9 +25,10 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         address tokenIn;
         uint256 amountIn; // tokenIn.decimals
         uint256 minOut; // collateral.decimals
-        uint256 borrow; // collateral.decimals
         uint256 sizeUsd; // 1e18
         uint96 priceUsd; // 1e18
+        uint96 tpPriceUsd; // 1e18
+        uint96 slPriceUsd; // 1e18
         uint8 flags; // MARKET, TRIGGER
         bytes32 referralCode;
     }
@@ -40,11 +41,22 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         uint256 collateralUsd; // collateral.decimals
         uint256 sizeUsd; // 1e18
         uint96 priceUsd; // 1e18
+        uint96 tpPriceUsd; // 1e18
+        uint96 slPriceUsd; // 1e18
         uint8 flags; // MARKET, TRIGGER
         bytes32 referralCode;
     }
 
+    struct OrderParams {
+        bytes32 orderKey;
+        uint256 collateralDelta;
+        uint256 sizeDelta;
+        uint256 triggerPrice;
+        bool triggerAboveThreshold;
+    }
+
     event SetReferralCode(bytes32 referralCode);
+    event SetMaintainer(address maintainer, bool enable);
 
     function initialize(address weth_) external initializer {
         __Ownable_init();
@@ -55,21 +67,10 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         return _weth;
     }
 
-    // ======================== methods for contract management ========================
-    function upgradeTo(uint256 exchangeId, address newImplementation_) external onlyOwner {
-        _upgradeTo(exchangeId, newImplementation_);
-    }
+    // ======================== getter methods ========================
 
     function getImplementationAddress(uint256 exchangeId) external view returns(address){
         return _implementations[exchangeId];
-    }
-
-    function setExchangeLiquidityPool(uint256 exchangeId, address liquidityPool) external onlyOwner{
-        _setExchangeLiquidityPool(exchangeId, liquidityPool);
-    }
-
-    function getExchangeLiquidityPool(uint256 exchangeId) external view returns(address){
-        return _getExchangeLiquidityPool(exchangeId);
     }
 
     function getProxyExchangeId(address proxy) external view returns(uint256){
@@ -80,6 +81,41 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         return _tradingProxies[proxyId];
     }
 
+    function getProxiesOf(address account) public view returns (address[] memory) {
+        return _ownedProxies[account];
+    }
+
+    function getExchangeConfig(uint256 ExchangeId) external view returns (uint256[] memory) {
+        return _exchangeConfigs[ExchangeId].values;
+    }
+
+    function getMainatinerStatus(address maintainer) external view returns(bool){
+        return _maintainers[maintainer];
+    }
+
+    function getConfigVersions(uint256 ExchangeId)
+        external
+        view
+        returns (uint32 exchangeConfigVersion)
+    {
+        return _getLatestVersions(ExchangeId);
+    }
+
+    // ======================== methods for contract management ========================
+    function upgradeTo(uint256 exchangeId, address newImplementation_) external onlyOwner {
+        _upgradeTo(exchangeId, newImplementation_);
+    }
+
+    function setExchangeConfig(uint256 ExchangeId, uint256[] memory values) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        _setExchangeConfig(ExchangeId, values);
+    }
+
+    function setMaintainer(address maintainer, bool enable) external onlyOwner {
+        _maintainers[maintainer] = enable;
+        emit SetMaintainer(maintainer, enable);
+    }
+
     // ======================== methods called by user ========================
     function createProxy(
         uint256 exchangeId,
@@ -87,12 +123,9 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         address assetToken,
         bool isLong
     ) public returns (address) {
-        //ToDo - verify collateral and asset IDs before we create a proxy
-        address _liquidityPool = _getExchangeLiquidityPool(exchangeId);
         return
             _createBeaconProxy(
                 exchangeId,
-                _liquidityPool,
                 msg.sender,
                 assetToken,
                 collateralToken,
@@ -112,27 +145,28 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
             require(msg.value >= args.amountIn, "InsufficientAmountIn");
         }
 
-        IAggregator(proxy).openPosition{ value: msg.value }(
+        IGmxAggregator(proxy).openPosition{ value: msg.value }(
             args.tokenIn,
             args.amountIn,
             args.minOut,
-            args.borrow,
             args.sizeUsd,
             args.priceUsd,
-            args.flags,
-            args.referralCode
+            args.tpPriceUsd,
+            args.slPriceUsd,
+            args.flags
         );
     }
 
     function closePosition(ClosePositionArgs calldata args) external payable {
         address proxy = _mustGetProxy(args.exchangeId, msg.sender, args.collateralToken, args.assetToken, args.isLong);
 
-        IAggregator(proxy).closePosition{ value: msg.value }(
+        IGmxAggregator(proxy).closePosition{ value: msg.value }(
             args.collateralUsd,
             args.sizeUsd,
             args.priceUsd,
-            args.flags,
-            args.referralCode
+            args.tpPriceUsd,
+            args.slPriceUsd,
+            args.flags
         );
     }
 
@@ -143,7 +177,53 @@ contract ProxyFactory is Storage, ProxyBeacon, ProxyConfig, OwnableUpgradeable {
         bool isLong,
         bytes32[] calldata keys
     ) external {
-        IAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).cancelOrders(keys);
+        IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).cancelOrders(keys);
+    }
+
+    function updateOrder(
+        uint256 exchangeId,
+        address collateralToken,
+        address assetToken,
+        bool isLong,
+        OrderParams[] memory orderParams
+    ) external {
+        for (uint256 i = 0; i < orderParams.length; i++) {
+            IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).updateOrder(
+                orderParams[i].orderKey,
+                orderParams[i].collateralDelta,
+                orderParams[i].sizeDelta,
+                orderParams[i].triggerPrice,
+                orderParams[i].triggerAboveThreshold
+            );
+        }
+    }
+
+    function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view returns(bytes32[] memory){
+        return IGmxAggregator(_mustGetProxy(exchangeId, msg.sender, collateralToken, assetToken, isLong)).getPendingOrderKeys();
+    }
+
+    function withdraw(
+        uint256 exchangeId,
+        address account,
+        address collateralToken,
+        address assetToken,
+        bool isLong
+    ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        IGmxAggregator(_mustGetProxy(exchangeId, account, collateralToken, assetToken, isLong)).withdraw();
+    }
+
+    // ======================== Methods called by maintainer ========================
+
+    function cancelTimeoutOrders(
+        uint256 projectId,
+        address account,
+        address collateralToken,
+        address assetToken,
+        bool isLong,
+        bytes32[] calldata keys
+    ) external {
+        IGmxAggregator(_mustGetProxy(projectId, account, collateralToken, assetToken, isLong)).cancelTimeoutOrders(keys);
     }
 
     // ======================== Utility methods ========================
