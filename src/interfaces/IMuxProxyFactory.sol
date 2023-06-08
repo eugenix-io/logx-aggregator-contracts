@@ -8,33 +8,22 @@ import "../interfaces/IMuxAggregator.sol";
 
 interface IMuxProxyFactory {
 
-    struct OpenPositionArgs {
+    struct PositionArgs {
         uint256 exchangeId;
         address collateralToken;
-        address assetToken;
-        address profitToken;
+        uint8 collateralId;
+        uint8 assetId;
+        uint8 profitTokenId;
+        address profitTokenAddress;
         bool isLong;
-        uint256 collateralAmount;
-        uint256 size;
-        uint96 price;
+        uint96 collateralAmount; // tokenIn.decimals
+        uint96 size; // 1e18
+        uint96 price; // 1e18
         uint96 collateralPrice;
         uint96 assetPrice;
-        uint8 flags;
+        uint8 flags; // MARKET, TRIGGER
         bytes32 referralCode;
-    }
-
-    struct ClosePositionArgs {
-        uint256 exchangeId;
-        address collateralToken;
-        address assetToken;
-        bool isLong;
-        uint256 collateralUsd;
-        uint256 size;
-        uint96 price;
-        uint96 collateralPrice;
-        uint96 assetPrice;
-        uint8 flags;
-        bytes32 referralCode;
+        uint32 deadline;
     }
 
     event SetReferralCode(bytes32 referralCode);
@@ -70,9 +59,9 @@ interface IMuxProxyFactory {
 
     function createProxy(uint256 exchangeId, address collateralToken, address assetToken, address profitToken, bool isLong) external returns (address);
 
-    function openPosition(OpenPositionArgs calldata args, PositionOrderExtra memory extra) external payable;
+    function openPosition(PositionArgs calldata args, PositionOrderExtra memory extra) external payable;
 
-    function closePosition(ClosePositionArgs calldata args, PositionOrderExtra memory extra) external payable;
+    function closePosition(PositionArgs calldata args, PositionOrderExtra memory extra) external payable;
 
     function cancelOrders(uint256 exchangeId, address collateralToken, address assetToken, bool isLong, bytes32[] calldata keys) external;
 

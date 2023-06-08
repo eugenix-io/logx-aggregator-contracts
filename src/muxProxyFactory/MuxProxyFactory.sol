@@ -23,6 +23,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         uint8 collateralId;
         uint8 assetId;
         uint8 profitTokenId;
+        address profitTokenAddress;
         bool isLong;
         uint96 collateralAmount; // tokenIn.decimals
         uint96 size; // 1e18
@@ -136,6 +137,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             args.deadline,
             args.isLong,
             args.profitTokenId,
+            args.profitTokenAddress,
             extra
         );
     }
@@ -153,6 +155,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             args.deadline,
             args.isLong,
             args.profitTokenId,
+            args.profitTokenAddress,
             extra
         );
     }

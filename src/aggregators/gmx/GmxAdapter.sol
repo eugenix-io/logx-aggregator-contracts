@@ -280,6 +280,11 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
                 IWETH(_WETH).deposit{ value: ethBalance }();
             } else {
                 AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
+                emit Withdraw(
+                    _account.collateralToken,
+                    _account.account,
+                    ethBalance
+                );
             }
         }
 
@@ -287,14 +292,14 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         //ToDo - should we check if margin is safe?
         if (balance > 0) {
             _transferToUser(balance);
+                emit Withdraw(
+                _account.collateralToken,
+                _account.account,
+                balance
+            );
         }
         // clean tpsl orders
         _cleanTpslOrders();
-        emit Withdraw(
-            _account.collateralToken,
-            _account.account,
-            balance
-        );
     }
 
     function _transferToUser(uint256 amount) internal {

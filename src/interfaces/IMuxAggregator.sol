@@ -28,6 +28,7 @@ interface IMuxAggregator {
         uint32 deadline,
         bool isLong,
         uint8 profitTokenId,
+        address profitTokenAddress,
         PositionOrderExtra memory extra
     ) external payable;
     

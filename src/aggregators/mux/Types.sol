@@ -13,8 +13,9 @@ struct AccountState {
     address collateralToken;
     uint8 collateralId;
     uint8 indexId; // 160
-    address profitToken;
+    address profitTokenAddress;
     bool isLong; // 8
+    uint8 collateralDecimals;
     bytes32[20] reserved;
 }
 

@@ -24,7 +24,6 @@ contract Config is Storage, Position{
             _updateExchangeConfigs();
             _localexchangeVersion = latestexchangeVersion;
         }
-        _patch();
     }
 
     function _updateExchangeConfigs() internal {
@@ -74,13 +73,6 @@ contract Config is Storage, Position{
                 LibGmx.cancelOrderFromOrderBook(previousOrderBook, key);
                 _removePendingOrder(key);
             }
-        }
-    }
-
-    // path  ToDo: remove me when deploy?
-    function _patch() internal {
-        if (_account.collateralDecimals == 0) {
-            _account.collateralDecimals = IERC20MetadataUpgradeable(_account.collateralToken).decimals();
         }
     }
 }

@@ -58,6 +58,9 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         _account.collateralId = collateralId;
         _account.indexId = assetId;
         _account.isLong = isLong;
+        //We set the profitTokenAdderss to collateralToken during initialization, if the user provides with a profitTokenAddress during closing Position, we will update this value.
+        _account.profitTokenAddress = collateralToken;
+        _account.collateralDecimals = IERC20MetadataUpgradeable(collateralToken).decimals();
         _updateConfigs();
         _subAccountId = encodeSubAccountId(isLong);
     }
@@ -91,6 +94,7 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         uint32 deadline,
         bool isLong,
         uint8 profitTokenId,
+        address profitTokenAddress,
         PositionOrderExtra memory extra
     ) external payable onlyTraderOrFactory nonReentrant {
 
@@ -116,6 +120,9 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
                 IWETH(_WETH).deposit{ value: collateralAmount }();
             }
             IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.orderBook, collateralAmount);
+        } else{
+            //For close position, we will save the profit token at 
+            _account.profitTokenAddress = profitTokenAddress;
         }
 
         PositionContext memory context = PositionContext({
@@ -165,21 +172,32 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         }
         uint256 balance = IERC20Upgradeable(_account.collateralToken).balanceOf(address(this));
         if (balance > 0) {
-            _transferToUser(balance);
+            _transferToUser(balance, _account.collateralToken);
             emit Withdraw(
-            _account.collateralToken,
-            _account.account,
-            balance
-        );
+                _account.collateralToken,
+                _account.account,
+                balance
+            );
+        }
+        if(_account.profitTokenAddress != _account.collateralToken){
+            uint256 profitTokenBalance = IERC20Upgradeable(_account.profitTokenAddress).balanceOf(address(this));
+            if(balance > 0){
+                _transferToUser(profitTokenBalance, _account.profitTokenAddress);
+                emit Withdraw(
+                    _account.profitTokenAddress,
+                    _account.account,
+                    profitTokenBalance
+                );
+            }
         }
     }
 
-    function _transferToUser(uint256 amount) internal {
-        if (_account.collateralToken == _WETH) {
+    function _transferToUser(uint256 amount, address tokenAddress) internal {
+        if (tokenAddress == _WETH) {
             IWETH(_WETH).withdraw(amount);
             Address.sendValue(payable(_account.account), amount);
         } else {
-            IERC20Upgradeable(_account.collateralToken).safeTransfer(_account.account, amount);
+            IERC20Upgradeable(tokenAddress).safeTransfer(_account.account, amount);
         }
     }
 

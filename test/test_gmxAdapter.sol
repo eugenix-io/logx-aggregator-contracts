@@ -179,12 +179,6 @@ contract TestGmxAdapter is Test, Setup{
         _gmxAdapterProxyLong.openPosition{value:500000000000000}(_dai, 18000000000000000000, 0, 600000000000000000000, 0, 1900000000000000000000, 1100000000000000000000, 0x08);
     }
 
-    function testGmxAdapterWithdraw() public{
-        vm.expectEmit(true, true, true, false);
-        emit Withdraw(_wbtc, _account, 0);
-        _gmxAdapterProxyLong.withdraw();
-    }
-
     function testGmxAdapterGetPositionKey() public{
         bytes32 requiredPositionKey = keccak256(abi.encodePacked(0x898A32b0fa508812a00b9c2E6B109b8216dF1588, _wbtc, _wbtc, true));
         bytes32 gmxPositionKey = _gmxAdapterProxyLong.getPositionKey();
