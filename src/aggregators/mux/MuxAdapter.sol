@@ -156,18 +156,22 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
                 IWETH(_WETH).deposit{ value: ethBalance }();
             } else {
                 AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
+                emit Withdraw(
+                    _account.collateralToken,
+                    _account.account,
+                    ethBalance
+                );
             }
         }
         uint256 balance = IERC20Upgradeable(_account.collateralToken).balanceOf(address(this));
-        //ToDo - should we check if margin is safe if the position size != 0?
         if (balance > 0) {
             _transferToUser(balance);
-        }
-        emit Withdraw(
+            emit Withdraw(
             _account.collateralToken,
             _account.account,
             balance
         );
+        }
     }
 
     function _transferToUser(uint256 amount) internal {

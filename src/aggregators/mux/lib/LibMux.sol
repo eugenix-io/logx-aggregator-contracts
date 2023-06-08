@@ -42,10 +42,9 @@ library LibMux {
         Asset memory asset,
         SubAccount memory subAccount,
         bool isLong,
-        uint96 amount,
         uint96 assetPrice
     ) internal view returns (bool hasProfit, uint96 pnlUsd) {
-        if (amount == 0) {
+        if (subAccount.size == 0) {
             return (false, 0);
         }
         require(assetPrice > 0, "P=0"); // Price Is Zero
@@ -61,7 +60,7 @@ library LibMux {
             hasProfit = false;
             return (false, 0);
         }
-        pnlUsd = uint256(priceDelta).wmul(amount).safeUint96();
+        pnlUsd = uint256(priceDelta).wmul(subAccount.size).safeUint96();
     }
 
     function _isAccountSafe(
@@ -102,12 +101,7 @@ library LibMux {
         order.expire10s = uint24(bytes3(data[1] << 136));
         order.placeOrderTime = uint32(bytes4(data[1] << 160));
     }
-
-    function cancelOrder(ExchangeConfigs memory _exchangeConfigs, uint64 orderId) internal returns(bool success){
-        IMuxOrderBook(_exchangeConfigs.orderBook).cancelOrder(orderId);
-        success = true;
-    }
-
+    
     function cancelOrderFromOrderBook(address orderBook, uint64 orderId) internal returns(bool success){
         IMuxOrderBook(orderBook).cancelOrder(orderId);
         success = true;

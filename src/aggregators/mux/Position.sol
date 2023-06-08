@@ -71,7 +71,7 @@ contract Position is Storage{
         margin.asset = IMuxGetter(_exchangeConfigs.liquidityPool).getAssetInfo(_account.indexId);
         bool hasProfit;
         if (subAccount.size != 0) {
-            (hasProfit, margin.muxPnlUsd) = LibMux._positionPnlUsd(margin.asset, subAccount, isLong, subAccount.size, assetPrice); 
+            (hasProfit, margin.muxPnlUsd) = LibMux._positionPnlUsd(margin.asset, subAccount, isLong, assetPrice); 
             margin.muxFundingFeeUsd = LibMux._getFundingFeeUsd(subAccount, margin.asset, isLong, assetPrice);
         }
 
@@ -126,7 +126,7 @@ contract Position is Storage{
 
     function _cancelOrder(uint64 orderId) internal returns(bool success){
         require(_hasPendingOrder(orderId), "KeyNotExists");
-        success = LibMux.cancelOrder(_exchangeConfigs, orderId);
+        success = LibMux.cancelOrderFromOrderBook(_exchangeConfigs.orderBook, orderId);
         _removePendingOrder(orderId);
         emit CancelOrder(orderId, success);
     }
@@ -163,9 +163,9 @@ contract Position is Storage{
         }
 
         if (found) {
-            for (; i < _pendingOrders.length-1; i++) {
-                _pendingOrders[i] = _pendingOrders[i+1];
-            }
+            // Set the i-th element to the last element
+            _pendingOrders[i] = _pendingOrders[_pendingOrders.length - 1];
+            // Remove the last element
             _pendingOrders.pop();
         }
     }
