@@ -8,14 +8,12 @@ import "../../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/ex
 import "../../../lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol";
 
 import "../../interfaces/IGmxRouter.sol";
-import "../../interfaces/IGmxProxyFactory.sol";
 
+import "../../interfaces/IWETH.sol";
 import "../../components/ImplementationGuard.sol";
 import "./Storage.sol";
 import "./Config.sol";
 import "./Position.sol";
-
-import "./lib/LibGmx.sol";
 
 contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpgradeable{
     using MathUpgradeable for uint256;

@@ -82,6 +82,18 @@ profitTokenId == 0 (profit token ID mentioned in the tpsl extra parameters will 
 13. **deadline :** deadline before the order expires. Deadline should be 0 for Market Orders - even if the user give a deadline for a market order by mistake, the proxy factory makes sure the deadline for market orders is set to 0.
 14. **msg.value :** if the collateralToken is _weth, then the msg.value should be equal to collateralAmount. If collateralToken is not _weth, then msg.value should be equal to 0. 
 
+#### PositionOrderExtra
+```solidity
+struct PositionOrderExtra {
+    // tp/sl strategy
+    uint96 tpPrice; // take-profit price. decimals = 18. only valid when flags.POSITION_TPSL_STRATEGY.
+    uint96 slPrice; // stop-loss price. decimals = 18. only valid when flags.POSITION_TPSL_STRATEGY.
+    uint8 tpslProfitTokenId; // only valid when flags.POSITION_TPSL_STRATEGY.
+    uint32 tpslDeadline; // only valid when flags.POSITION_TPSL_STRATEGY.
+}
+```
+The arguments above are self explainatory.
+
 ### Order Management
 ```solidity
 function getPendingOrderKeys(uint256 exchangeId, address collateralToken, address assetToken, bool isLong) external view returns(uint64[] memory)

@@ -7,7 +7,6 @@ import "../../../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeE
 import "../../../interfaces/IGmxOrderBook.sol";
 import "../../../interfaces/IGmxPositionRouter.sol";
 import "../../../interfaces/IGmxVault.sol";
-import "../../../interfaces/IWETH.sol";
 
 import "../Types.sol";
 
@@ -149,7 +148,7 @@ library LibGmx {
         }
     }
 
-    function cancelOrder(ExchangeConfigs memory exchangeConfigs, bytes32 key) public returns (bool success) {
+    function cancelOrder(ExchangeConfigs memory exchangeConfigs, bytes32 key) internal returns (bool success) {
         OrderHistory memory history = decodeOrderHistoryKey(key);
         success = false;
         if (history.receiver == OrderReceiver.PR_INC) {
@@ -191,7 +190,7 @@ library LibGmx {
         bool isLong,
         uint256 priceUsd,
         uint256 lastIncreasedTime
-    ) public view returns (bool, uint256) {
+    ) internal view returns (bool, uint256) {
         require(priceUsd > 0, "");
         uint256 priceDelta = averagePriceUsd > priceUsd ? averagePriceUsd - priceUsd : priceUsd - averagePriceUsd;
         uint256 delta = (size * priceDelta) / averagePriceUsd;
@@ -267,11 +266,11 @@ library LibGmx {
         slOrderKey = slOrderKey != bytes32(0) ? slOrderKey | timestamp : slOrderKey;
     }
 
-    function getPrExecutionFee(ExchangeConfigs memory exchangeConfigs) public view returns (uint256) {
+    function getPrExecutionFee(ExchangeConfigs memory exchangeConfigs) internal view returns (uint256) {
         return IGmxPositionRouter(exchangeConfigs.positionRouter).minExecutionFee();
     }
 
-    function getObExecutionFee(ExchangeConfigs memory exchangeConfigs) public view returns (uint256) {
+    function getObExecutionFee(ExchangeConfigs memory exchangeConfigs) internal view returns (uint256) {
         return IGmxOrderBook(exchangeConfigs.orderBook).minExecutionFee() + 1;
     }
 }
