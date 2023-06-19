@@ -83,7 +83,7 @@ contract Position is Storage{
         margin.thresholdUsd = ((uint256(subAccount.size) + uint256(sizeDelta)) * uint256(assetPrice) * uint256(threshold)) / 1e18 / 1e5;
 
         //Collateral left in the position
-        uint256 collateralUsd = (uint256(subAccount.collateral) + uint256(collateralDelta)).wmul(collateralPrice) / uint256(10**_account.collateralDecimals);
+        uint256 collateralUsd = ((uint256(subAccount.collateral) + uint256(collateralDelta)) * collateralPrice) / uint256(10**_account.collateralDecimals);
         
         return ((hasProfit ? collateralUsd + margin.muxPnlUsd - margin.muxFundingFeeUsd : collateralUsd - margin.muxPnlUsd - margin.muxFundingFeeUsd) >= margin.thresholdUsd.max(margin.liquidationFeeUsd));
     }
