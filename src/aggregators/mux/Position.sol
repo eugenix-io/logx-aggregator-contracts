@@ -110,7 +110,7 @@ contract Position is Storage{
         );
 
         uint256 startOrderCount = IMuxOrderBook(_exchangeConfigs.orderBook).getOrderCount();
-        IMuxOrderBook(_exchangeConfigs.orderBook).placePositionOrder3(context.subAccountId, context.collateralAmount, context.size, context.price, context.profitTokenId ,context.flags, context.deadline, _exchangeConfigs.referralCode, context.extra);
+        IMuxOrderBook(_exchangeConfigs.orderBook).placePositionOrder3{ value: msg.value }(context.subAccountId, context.collateralAmount, context.size, context.price, context.profitTokenId ,context.flags, context.deadline, _exchangeConfigs.referralCode, context.extra);
         uint256 endOrderCount = IMuxOrderBook(_exchangeConfigs.orderBook).getOrderCount();
 
         require(endOrderCount > startOrderCount, "Order not recorded on MUX");

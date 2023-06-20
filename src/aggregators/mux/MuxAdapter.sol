@@ -117,9 +117,11 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         if((flags & POSITION_OPEN) != 0){
             //We will not have to deposit or give the approvals for close position
             if (_account.collateralToken == _WETH) {
-                IWETH(_WETH).deposit{ value: collateralAmount }();
+                require(msg.value >= collateralAmount, "Insufficient ETH");
+            } else{
+                require(msg.value == 0, "Unnecessary ETH");
+                IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.orderBook, collateralAmount);
             }
-            IERC20Upgradeable(_account.collateralToken).approve(_exchangeConfigs.orderBook, collateralAmount);
         } else{
             //For close position, we will save the profit token at 
             _account.profitTokenAddress = profitTokenAddress;
@@ -159,16 +161,12 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
 
         uint256 ethBalance = address(this).balance;
         if (ethBalance > 0) {
-            if (_account.collateralToken == _WETH) {
-                IWETH(_WETH).deposit{ value: ethBalance }();
-            } else {
-                AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
-                emit Withdraw(
-                    _account.collateralToken,
-                    _account.account,
-                    ethBalance
-                );
-            }
+            AddressUpgradeable.sendValue(payable(_account.account), ethBalance);
+            emit Withdraw(
+                _account.collateralToken,
+                _account.account,
+                ethBalance
+            );
         }
         uint256 balance = IERC20Upgradeable(_account.collateralToken).balanceOf(address(this));
         if (balance > 0) {
