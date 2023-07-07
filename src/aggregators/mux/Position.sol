@@ -127,6 +127,7 @@ contract Position is Storage{
     function _cancelOrder(uint64 orderId) internal returns(bool success){
         require(_hasPendingOrder(orderId), "KeyNotExists");
         success = LibMux.cancelOrderFromOrderBook(_exchangeConfigs.orderBook, orderId);
+        require(success, 'Cancel Order Failed');
         _removePendingOrder(orderId);
         emit CancelOrder(orderId, success);
     }

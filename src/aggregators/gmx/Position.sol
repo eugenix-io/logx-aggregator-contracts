@@ -231,6 +231,7 @@ contract Position  is Storage{
     function _cancelOrder(bytes32 key) internal returns (bool success) {
         require(_hasPendingOrder(key), "KeyNotExists");
         success = LibGmx.cancelOrder(_exchangeConfigs, key);
+        require(success, 'Cancel Order Failed');
         _removePendingOrder(key);
         emit CancelOrder(key, success);
     }
