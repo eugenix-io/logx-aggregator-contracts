@@ -201,7 +201,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         address[] storage ownedProxies = _ownedProxies[userAddress];
         for (uint i = 0; i < ownedProxies.length; i++) {
             if (ownedProxies[i] == proxyAddress) {
-                // If it's not the last item, we move the last item to this location
+                // We found the proxyAddress, now we need to remove it
                 ownedProxies[i] = ownedProxies[ownedProxies.length - 1];
                 ownedProxies.pop();
                 break;
