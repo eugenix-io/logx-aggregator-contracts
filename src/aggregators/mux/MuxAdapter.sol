@@ -207,8 +207,8 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         uint64[] memory pendingKeys = _pendingOrders;
         for (uint256 i = 0; i < pendingKeys.length; i++) {
             uint64 key = pendingKeys[i];
-            ( ,bool notExist) = LibMux.getOrder(_exchangeConfigs, key);
-            if (notExist) {
+            ( ,bool orderExists) = LibMux.getOrder(_exchangeConfigs, key);
+            if (!orderExists) {
                 _removePendingOrder(key);
             }
         }

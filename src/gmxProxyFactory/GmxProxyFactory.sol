@@ -213,6 +213,28 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         IGmxAggregator(_mustGetProxy(exchangeId, account, collateralToken, assetToken, isLong)).withdraw();
     }
 
+    function removeProxy(bytes32 proxyId, address userAddress) external onlyOwner {
+        // Fetch the proxy address from _tradingProxies
+        address proxyAddress = _tradingProxies[proxyId];
+
+        // Delete the entry in _tradingProxies
+        delete _tradingProxies[proxyId];
+
+        // Delete the entry in _proxyExchangeIds
+        delete _proxyExchangeIds[proxyAddress];
+
+        // Remove the proxyAddress from the _ownedProxies array for the userAddress
+        address[] storage ownedProxies = _ownedProxies[userAddress];
+        for (uint i = 0; i < ownedProxies.length; i++) {
+            if (ownedProxies[i] == proxyAddress) {
+                // We found the proxyAddress, now we need to remove it
+                ownedProxies[i] = ownedProxies[ownedProxies.length - 1];
+                ownedProxies.pop();
+                break;
+            }
+        }
+    }
+
     // ======================== Methods called by maintainer ========================
 
     function cancelTimeoutOrders(
