@@ -179,7 +179,7 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         }
         if(_account.profitTokenAddress != _account.collateralToken){
             uint256 profitTokenBalance = IERC20Upgradeable(_account.profitTokenAddress).balanceOf(address(this));
-            if(balance > 0){
+            if(profitTokenBalance > 0){
                 _transferToUser(profitTokenBalance, _account.profitTokenAddress);
                 emit Withdraw(
                     _account.profitTokenAddress,
