@@ -54,7 +54,6 @@ contract Position is Storage{
                     "AddFailed"
                 );
                 emit AddPendingOrder(category, i, block.timestamp);
-                break;
             }
         }
     }
