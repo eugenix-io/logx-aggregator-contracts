@@ -379,7 +379,9 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
         }
         for (uint256 i = 0; i < closeLength; i++) {
             // clean all tpsl orders paired with orders that already filled
-            _cancelOrder(closeKeys[i]);
+            if (_pendingOrders.contains(closeKeys[i])) {
+                _cancelOrder(closeKeys[i]);
+            }
         }
     }
 }
