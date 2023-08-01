@@ -45,7 +45,8 @@ contract Position is Storage{
         uint256 endOrderCount,
         bytes32 subAccountId
     ) internal{
-        (bytes32[3][] memory orderArray, uint256 totalCount) = IMuxOrderBook(_exchangeConfigs.orderBook).getOrders(startOrderCount, endOrderCount);
+        (bytes32[3][] memory orderArray, ) = IMuxOrderBook(_exchangeConfigs.orderBook).getOrders(startOrderCount, endOrderCount);
+        uint256 totalCount = endOrderCount - startOrderCount;
         for (uint256 i = 0; i < totalCount; i++) {
             PositionOrder memory order = LibMux.decodePositionOrder(orderArray[i]);
             if(order.subAccountId == subAccountId) {
@@ -54,7 +55,6 @@ contract Position is Storage{
                     "AddFailed"
                 );
                 emit AddPendingOrder(category, i, block.timestamp);
-                break;
             }
         }
     }
