@@ -245,6 +245,7 @@ contract GmxProxyFactory is GmxStorage, GmxProxyBeacon, GmxProxyConfig, OwnableU
         bool isLong,
         bytes32[] calldata keys
     ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
         IGmxAggregator(_mustGetProxy(projectId, account, collateralToken, assetToken, isLong)).cancelTimeoutOrders(keys);
     }
 
