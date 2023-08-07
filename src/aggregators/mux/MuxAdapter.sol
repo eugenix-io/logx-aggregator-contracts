@@ -213,5 +213,4 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
             }
         }
     }
-
 }

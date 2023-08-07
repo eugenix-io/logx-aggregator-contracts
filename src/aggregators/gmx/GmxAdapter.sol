@@ -349,11 +349,13 @@ contract GMXAdapter is Position, Config, ImplementationGuard, ReentrancyGuardUpg
 
     function _cleanOrders() internal {
         bytes32[] memory pendingKeys = _pendingOrders.values();
-        for (uint256 i = 0; i < pendingKeys.length; i++) {
-            bytes32 key = pendingKeys[i];
-            (bool notExist, ) = LibGmx.getOrder(_exchangeConfigs, key);
-            if (notExist) {
-                _removePendingOrder(key);
+        if(pendingKeys.length > 0){
+            for (uint256 i = 0; i < pendingKeys.length; i++) {
+                bytes32 key = pendingKeys[i];
+                (bool notExist, ) = LibGmx.getOrder(_exchangeConfigs, key);
+                if (notExist) {
+                    _removePendingOrder(key);
+                }
             }
         }
     }
