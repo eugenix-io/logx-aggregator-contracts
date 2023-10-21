@@ -29,4 +29,10 @@ contract MuxStorage is Initializable{
 
     //address for logX referral manager
     address internal _referralManager;
+
+    //Aggregation Fee variables
+    uint256 internal _aggregationFee;
+    bool internal _openAggregationFee;
+    bool internal _closeAggregationFee;
+    address payable internal _feeCollector;
 }
