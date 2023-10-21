@@ -57,6 +57,14 @@ interface IMuxProxyFactory {
 
     function setMaintainer(address maintainer, bool enable) external;
 
+    function setAggregationFee(uint256 fee, bool openAggregationFee, address feeCollector) external;
+
+    function getAggregationFee() external view returns (uint256);
+
+    function getOpenAggregationFeeStatus() external view returns(bool);
+
+    function getFeeCollectorAddress() external view returns(address payable);
+
     function createProxy(uint256 exchangeId, address collateralToken, address assetToken, address profitToken, bool isLong) external returns (address);
 
     function openPosition(PositionArgs calldata args, PositionOrderExtra memory extra) external payable;

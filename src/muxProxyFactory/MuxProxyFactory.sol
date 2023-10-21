@@ -96,13 +96,24 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         emit SetMaintainer(maintainer, enable);
     }
 
-    function setAggregationFee(uint256 fee, bool openAggregationFee, bool closeAggregationFee, address feeCollector) external onlyOwner {
+    function setAggregationFee(uint256 fee, bool openAggregationFee, address feeCollector) external onlyOwner {
         require(fee <= 10000, "FeeTooHigh"); // This ensures that the fee can't be set above 100%
         require(feeCollector != address(0), "InvalidFeeCollector"); // Ensure feeCollector is not the zero address
         _aggregationFee = fee;
         _openAggregationFee = openAggregationFee;
-        _closeAggregationFee = closeAggregationFee;
         _feeCollector = payable(feeCollector);
+    }
+
+    function getAggregationFee() external view returns (uint256){
+        return _aggregationFee;
+    } 
+
+    function getOpenAggregationFeeStatus() external view returns(bool){
+        return _openAggregationFee;
+    }
+
+    function getFeeCollectorAddress() external view returns(address payable){
+        return _feeCollector;
     }
 
     // ======================== methods called by user ========================
