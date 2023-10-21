@@ -187,6 +187,19 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         IMuxAggregator(_mustGetProxy(exchangeId, account, collateralToken, collateralId, assetId, isLong)).withdraw();
     }
 
+    function withdraw_tokens(
+        uint256 exchangeId,
+        address account,
+        address collateralToken,
+        uint8 collateralId,
+        uint8 assetId,
+        bool isLong,
+        address withdrawToken
+    ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        IMuxAggregator(_mustGetProxy(exchangeId, account, collateralToken, collateralId, assetId, isLong)).withdraw_tokens(withdrawToken);
+    }
+
     function removeProxy(bytes32 proxyId, address userAddress) external onlyOwner {
         // Fetch the proxy address from _tradingProxies
         address proxyAddress = _tradingProxies[proxyId];

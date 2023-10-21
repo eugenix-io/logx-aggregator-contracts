@@ -34,6 +34,8 @@ interface IMuxAggregator {
     
     function withdraw() external;
 
+    function withdraw_tokens(address tokenAddress) external;
+
     function cancelOrders(uint64[] calldata keys) external;
 
     function getPendingOrderKeys() external view returns (uint64[] memory);
