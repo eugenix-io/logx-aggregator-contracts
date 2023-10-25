@@ -154,7 +154,8 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         } else {
             require(msg.value >= collateralAfterFee, "InsufficientAmountIn");
             if(feeAmount > 0 && _openAggregationFee) {
-                _feeCollector.transfer(feeAmount);
+                (bool success, ) = _feeCollector.call{value: feeAmount}("");
+                require(success, "Transfer failed");
             }
         }
 
