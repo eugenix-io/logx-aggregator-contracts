@@ -31,7 +31,7 @@ contract MuxStorage is Initializable{
     address internal _referralManager;
 
     //Aggregation Fee variables
-    uint256 internal _aggregationFee;
+    uint96 internal _aggregationFee;
     bool internal _openAggregationFee;
     address payable internal _feeCollector;
 }

@@ -96,7 +96,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         emit SetMaintainer(maintainer, enable);
     }
 
-    function setAggregationFee(uint256 fee, bool openAggregationFee, address feeCollector) external onlyOwner {
+    function setAggregationFee(uint96 fee, bool openAggregationFee, address feeCollector) external onlyOwner {
         require(fee <= 10000, "FeeTooHigh"); // This ensures that the fee can't be set above 100%
         require(feeCollector != address(0), "InvalidFeeCollector"); // Ensure feeCollector is not the zero address
         _aggregationFee = fee;
@@ -104,7 +104,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         _feeCollector = payable(feeCollector);
     }
 
-    function getAggregationFee() external view returns (uint256){
+    function getAggregationFee() external view returns (uint96){
         return _aggregationFee;
     } 
 
@@ -136,31 +136,21 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
     }
 
     function openPosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable {
-        bytes32 proxyId = _makeProxyId(args.exchangeId, msg.sender, args.collateralToken, args.collateralId, args.assetId, args.isLong);
-        address proxy = _tradingProxies[proxyId];
+        address proxy = _tradingProxies[_makeProxyId(args.exchangeId, msg.sender, args.collateralToken, args.collateralId, args.assetId, args.isLong)];
         if (proxy == address(0)) {
             proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
 
-        //Transfer Aggregation Fee to fee collector if aggregation fee is enabled
-        uint256 feeAmount = args.collateralAmount * _aggregationFee / 10000;
-        uint256 collateralAfterFee = args.collateralAmount - feeAmount;
-
+        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, _openAggregationFee);
+        
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
-            if(feeAmount > 0 && _openAggregationFee) {
-                IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
-            }
         } else {
             require(msg.value >= collateralAfterFee, "InsufficientAmountIn");
-            if(feeAmount > 0 && _openAggregationFee) {
-                (bool success, ) = _feeCollector.call{value: feeAmount}("");
-                require(success, "Transfer failed");
-            }
         }
 
         IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
-            args.collateralAmount,
+            collateralAfterFee,
             args.size,
             args.price,
             args.flags,
@@ -173,6 +163,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             extra
         );
     }
+
 
     function closePosition(PositionArgs calldata args, PositionOrderExtra calldata extra) external payable {
         address proxy = _mustGetProxy(args.exchangeId, msg.sender, args.collateralToken, args.collateralId, args.assetId, args.isLong);
@@ -267,4 +258,22 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         proxy = _tradingProxies[proxyId];
         require(proxy != address(0), "ProxyNotExist");
     }
+
+    function _handleFee(address collateralToken, uint96 collateralAmount, bool openAggregationFee) internal returns (uint96 collateralAfterFee) {
+        uint96 feeAmount = collateralAmount * _aggregationFee / 10000;
+        collateralAfterFee = collateralAmount - feeAmount;
+
+        if (collateralToken != _weth) {
+            if (feeAmount > 0 && openAggregationFee) {
+                IERC20Upgradeable(collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
+            }
+        } else {
+            if (feeAmount > 0 && openAggregationFee) {
+                (bool success, ) = _feeCollector.call{value: feeAmount}("");
+                require(success, "Transfer failed");
+            }
+        }
+        return collateralAfterFee;
+    }
+
 }
