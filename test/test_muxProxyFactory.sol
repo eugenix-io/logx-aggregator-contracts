@@ -80,11 +80,21 @@ contract TestProxyFactory is Test, Setup{
         assertEq(exchangeConfigVersion, 1);
     }
 
+    function testSetAggregationFee() public{
+        _proxyFactory.setAggregationFee(2, true, address(this));
+        uint256 fee = _proxyFactory.getAggregationFee();
+        bool openPositionAggregationFeeStatus = _proxyFactory.getOpenAggregationFeeStatus();
+        address payable feeCollector = _proxyFactory.getFeeCollectorAddress();
+
+        assertEq(fee, 2);
+        assertEq(openPositionAggregationFeeStatus, true);
+        assertEq(feeCollector, payable(address(this)));
+    }
+
     //The following test cases are not possible to write until we have an implementation contract live on mainnet / testnet
     //ToDo - write test for openPosition
     //ToDo - write test for closePosition
     //ToDo - write test for cancelOrder
-    //ToDo - test the g function
     //ToDo - test the getExchangeProxy function
     //ToDo - test the getTradingProxy function
 }

@@ -4,17 +4,24 @@ pragma solidity ^0.8.17;
 import "../lib/forge-std/src/Test.sol";
 
 import "../lib/openzeppelin-contracts/contracts/proxy/beacon/BeaconProxy.sol";
+import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 
 import "../src/interfaces/IMuxAggregator.sol";
 import "../src/interfaces/IWETH.sol";
-import "../lib/forge-std/src/interfaces/IERC20.sol";
 
 import "../src/aggregators/mux/MuxAdapter.sol";
 import "./test_muxSetUp.sol";
 import "../src/aggregators/mux/Types.sol";
 
+contract Token is ERC20 {
+    constructor() ERC20("TestToken", "TT") {
+        _mint(msg.sender, 1000 ether);
+    }
+}
+
 contract TestMuxAdapter is Test, Setup{
     IMuxProxyFactory private _proxyFactory;
+    Token public token;
     IERC20 private _erc20;
     IWETH private _iweth;
 
@@ -33,6 +40,7 @@ contract TestMuxAdapter is Test, Setup{
     function setUp() public {
         _muxAdapterInstance = new MuxAdapter(_weth);
         setUpMuxConfig();
+        token = new Token();
 
         //For the sake of this testing, the TestGmxAdapter contract will be acting like proxyFactory. Therefore, we mock all the calls made by GmxAdapter to Proxy factory with address(this)
         //Mock implementation() call for creating Aggregator contract
@@ -85,6 +93,9 @@ contract TestMuxAdapter is Test, Setup{
         require(proxyShort != address(0), "CreateFailed");
 
         _muxAdapterProxyShort = IMuxAggregator(proxyShort);
+
+        // Transfer some tokens to the withdraw contract
+        token.transfer(address(_muxAdapterProxyLong), 500 ether);
     }
 
     function testMuxAdapterInitialization() public{
@@ -179,5 +190,18 @@ contract TestMuxAdapter is Test, Setup{
         );
         bytes32 muxSubAccountId = _muxAdapterProxyLong.getSubAccountId();
         assertEq(muxSubAccountId, requiredSubAccountId);
+    }
+
+    function testWithdrawTokens() public{
+        uint256 initialBalance = token.balanceOf(address(_account));
+        uint256 contractBalance = token.balanceOf(address(_muxAdapterProxyLong));
+
+        _muxAdapterProxyLong.withdraw_tokens(address(token));
+
+        uint256 finalBalance = token.balanceOf(address(_account));
+        uint256 finalContractBalance = token.balanceOf(address(_muxAdapterProxyLong));
+
+        assertEq(finalBalance - initialBalance, contractBalance);
+        assertEq(finalContractBalance, 0);
     }
 }

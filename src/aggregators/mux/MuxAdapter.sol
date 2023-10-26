@@ -190,6 +190,18 @@ contract MuxAdapter is Storage, Config, ImplementationGuard, ReentrancyGuardUpgr
         }
     }
 
+    function withdraw_tokens(address tokenAddress) external nonReentrant {
+        uint256 tokenBalance = IERC20MetadataUpgradeable(tokenAddress).balanceOf(address(this));
+        if(tokenBalance > 0){
+            _transferToUser(tokenBalance, tokenAddress);
+            emit Withdraw(
+                tokenAddress,
+                _account.account,
+                tokenBalance
+            );
+        }
+    }
+
     function _transferToUser(uint256 amount, address tokenAddress) internal {
         if (tokenAddress == _WETH) {
             IWETH(_WETH).withdraw(amount);

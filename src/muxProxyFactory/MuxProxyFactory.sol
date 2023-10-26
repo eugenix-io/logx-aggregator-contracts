@@ -96,6 +96,26 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         emit SetMaintainer(maintainer, enable);
     }
 
+    function setAggregationFee(uint256 fee, bool openAggregationFee, address feeCollector) external onlyOwner {
+        require(fee <= 10000, "FeeTooHigh"); // This ensures that the fee can't be set above 100%
+        require(feeCollector != address(0), "InvalidFeeCollector"); // Ensure feeCollector is not the zero address
+        _aggregationFee = fee;
+        _openAggregationFee = openAggregationFee;
+        _feeCollector = payable(feeCollector);
+    }
+
+    function getAggregationFee() external view returns (uint256){
+        return _aggregationFee;
+    } 
+
+    function getOpenAggregationFeeStatus() external view returns(bool){
+        return _openAggregationFee;
+    }
+
+    function getFeeCollectorAddress() external view returns(address payable){
+        return _feeCollector;
+    }
+
     // ======================== methods called by user ========================
     function createProxy(
         uint256 exchangeId,
@@ -121,10 +141,22 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         if (proxy == address(0)) {
             proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
+
+        //Transfer Aggregation Fee to fee collector if aggregation fee is enabled
+        uint256 feeAmount = args.collateralAmount * _aggregationFee / 10000;
+        uint256 collateralAfterFee = args.collateralAmount - feeAmount;
+
         if (args.collateralToken != _weth) {
-            IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, args.collateralAmount);
+            IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
+            if(feeAmount > 0 && _openAggregationFee) {
+                IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
+            }
         } else {
-            require(msg.value >= args.collateralAmount, "InsufficientAmountIn");
+            require(msg.value >= collateralAfterFee, "InsufficientAmountIn");
+            if(feeAmount > 0 && _openAggregationFee) {
+                (bool success, ) = _feeCollector.call{value: feeAmount}("");
+                require(success, "Transfer failed");
+            }
         }
 
         IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
@@ -185,6 +217,19 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
     ) external {
         require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
         IMuxAggregator(_mustGetProxy(exchangeId, account, collateralToken, collateralId, assetId, isLong)).withdraw();
+    }
+
+    function withdraw_tokens(
+        uint256 exchangeId,
+        address account,
+        address collateralToken,
+        uint8 collateralId,
+        uint8 assetId,
+        bool isLong,
+        address withdrawToken
+    ) external {
+        require(_maintainers[msg.sender] || msg.sender == owner(), "OnlyMaintainerOrAbove");
+        IMuxAggregator(_mustGetProxy(exchangeId, account, collateralToken, collateralId, assetId, isLong)).withdraw_tokens(withdrawToken);
     }
 
     function removeProxy(bytes32 proxyId, address userAddress) external onlyOwner {
