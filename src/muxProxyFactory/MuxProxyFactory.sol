@@ -142,7 +142,12 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
 
-        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, args.size, args.collateralPrice, args.assetPrice, _openAggregationFee);
+        uint96 collateralAfterFee;
+        if(_openAggregationFee) {
+            collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, args.size, args.collateralPrice, args.assetPrice);
+        } else {
+            collateralAfterFee = args.collateralAmount;
+        }
         
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
@@ -277,8 +282,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         uint96 collateralAmount,
         uint96 size,
         uint96 collateralPrice,
-        uint96 assetPrice,
-        bool openAggregationFee
+        uint96 assetPrice
     ) internal returns (uint96 collateralAfterFee) {
         require(collateralPrice > 0, "Collateral price must be greater than 0");
         require(assetPrice > 0, "Asset price must be greater than 0");
@@ -294,7 +298,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
 
         collateralAfterFee = uint96(collateralAmount - feeAmount);
 
-        if (openAggregationFee && feeAmount > 0) {
+        if (feeAmount > 0) {
             if (collateralToken != _weth) {
                 IERC20Upgradeable(collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
             } else {
