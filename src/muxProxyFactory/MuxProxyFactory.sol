@@ -141,7 +141,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
 
-        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, args.size, args.collateralPrice, _openAggregationFee);
+        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, args.size, args.collateralPrice, args.assetPrice, _openAggregationFee);
         
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
@@ -271,20 +271,33 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         require(proxy != address(0), "ProxyNotExist");
     }
 
-    function _handleFee(address collateralToken, uint96 collateralAmount, uint96 size, uint96 collateralPrice, bool openAggregationFee) internal returns (uint96 collateralAfterFee) {
-        uint96 feeAmount = (size / collateralPrice) * _aggregationFee / 10000;
-        collateralAfterFee = collateralAmount - feeAmount;
+    function _handleFee(
+        address collateralToken,
+        uint96 collateralAmount,
+        uint96 size,
+        uint96 collateralPrice,
+        uint96 assetPrice,
+        bool openAggregationFee
+    ) internal returns (uint96 collateralAfterFee) {
+        require(collateralPrice > 0, "Collateral price must be greater than 0");
+        require(assetPrice > 0, "Asset price must be greater than 0");
 
-        if (collateralToken != _weth) {
-            if (feeAmount > 0 && openAggregationFee) {
+        // Convert uint96 values to uint256 to prevent overflow during multiplication
+        uint256 feeAmount = (uint256(size) * uint256(assetPrice) * _aggregationFee) /
+            (uint256(collateralPrice) * 1e18 * 10000);
+        require(feeAmount <= collateralAmount, "Insufficient collateral after fee");
+
+        collateralAfterFee = uint96(collateralAmount - feeAmount);
+
+        if (openAggregationFee && feeAmount > 0) {
+            if (collateralToken != _weth) {
                 IERC20Upgradeable(collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
-            }
-        } else {
-            if (feeAmount > 0 && openAggregationFee) {
+            } else {
                 (bool success, ) = _feeCollector.call{value: feeAmount}("");
                 require(success, "Transfer failed");
             }
         }
+
         return collateralAfterFee;
     }
 
