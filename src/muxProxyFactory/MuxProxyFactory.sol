@@ -291,8 +291,8 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         uint8 collateralDecimals = IERC20MetadataUpgradeable(collateralToken).decimals();
 
         // Convert uint96 values to uint256 to prevent overflow during multiplication
-        uint256 feeAmount = (uint256(size) * uint256(assetPrice) * _aggregationFee * (10 ** collateralDecimals)) /
-            (collateralPrice * 1e18 * 10000);
+        uint256 feeAmount = (uint256(size) * uint256(assetPrice) * uint256(_aggregationFee) * (10 ** collateralDecimals)) /
+            (uint256(collateralPrice) * 1e18 * 10000);
 
         require(feeAmount <= collateralAmount, "Insufficient collateral after fee");
 
