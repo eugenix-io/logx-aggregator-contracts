@@ -145,23 +145,35 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
+            IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
+                collateralAfterFee,
+                args.size,
+                args.price,
+                args.flags,
+                args.assetPrice,
+                args.collateralPrice,
+                args.deadline,
+                args.isLong,
+                args.profitTokenId,
+                args.profitTokenAddress,
+                extra
+            );
         } else {
             require(msg.value >= collateralAfterFee, "InsufficientAmountIn");
+            IMuxAggregator(proxy).placePositionOrder{ value: collateralAfterFee }(
+                collateralAfterFee,
+                args.size,
+                args.price,
+                args.flags,
+                args.assetPrice,
+                args.collateralPrice,
+                args.deadline,
+                args.isLong,
+                args.profitTokenId,
+                args.profitTokenAddress,
+                extra
+            );
         }
-
-        IMuxAggregator(proxy).placePositionOrder{ value: msg.value }(
-            collateralAfterFee,
-            args.size,
-            args.price,
-            args.flags,
-            args.assetPrice,
-            args.collateralPrice,
-            args.deadline,
-            args.isLong,
-            args.profitTokenId,
-            args.profitTokenAddress,
-            extra
-        );
     }
 
 
