@@ -6,6 +6,7 @@ import "../../lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol";
 
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "../interfaces/IMuxAggregator.sol";
@@ -272,33 +273,38 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
     }
 
     function _handleFee(
-        address collateralToken,
-        uint96 collateralAmount,
-        uint96 size,
-        uint96 collateralPrice,
-        uint96 assetPrice,
-        bool openAggregationFee
-    ) internal returns (uint96 collateralAfterFee) {
-        require(collateralPrice > 0, "Collateral price must be greater than 0");
-        require(assetPrice > 0, "Asset price must be greater than 0");
+    address collateralToken,
+    uint96 collateralAmount,
+    uint96 size,
+    uint96 collateralPrice,
+    uint96 assetPrice,
+    bool openAggregationFee
+) internal returns (uint96 collateralAfterFee) {
+    require(collateralPrice > 0, "Collateral price must be greater than 0");
+    require(assetPrice > 0, "Asset price must be greater than 0");
 
-        // Convert uint96 values to uint256 to prevent overflow during multiplication
-        uint256 feeAmount = (uint256(size) * uint256(assetPrice) * _aggregationFee) /
-            (uint256(collateralPrice) * 1e18 * 10000);
-        require(feeAmount <= collateralAmount, "Insufficient collateral after fee");
+    // Fetch the decimals of the collateral token
+    uint8 collateralDecimals = IERC20MetadataUpgradeable(collateralToken).decimals();
+    uint256 normalizedCollateralPrice = uint256(collateralPrice) * (10 ** collateralDecimals);
 
-        collateralAfterFee = uint96(collateralAmount - feeAmount);
+    // Convert uint96 values to uint256 to prevent overflow during multiplication
+    uint256 feeAmount = (uint256(size) * uint256(assetPrice) * _aggregationFee) /
+        (normalizedCollateralPrice * 10000);
+    require(feeAmount <= collateralAmount, "Insufficient collateral after fee");
 
-        if (openAggregationFee && feeAmount > 0) {
-            if (collateralToken != _weth) {
-                IERC20Upgradeable(collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
-            } else {
-                (bool success, ) = _feeCollector.call{value: feeAmount}("");
-                require(success, "Transfer failed");
-            }
+    collateralAfterFee = uint96(collateralAmount - feeAmount);
+
+    if (openAggregationFee && feeAmount > 0) {
+        if (collateralToken != _weth) {
+            IERC20Upgradeable(collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
+        } else {
+            // ETH transfers use the smallest unit which is wei, no need for normalization
+            (bool success, ) = _feeCollector.call{value: feeAmount}("");
+            require(success, "Transfer failed");
         }
-
-        return collateralAfterFee;
     }
+
+    return collateralAfterFee;
+}
 
 }
