@@ -296,7 +296,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
 
         require(feeAmount <= collateralAmount, "Insufficient collateral after fee");
 
-        collateralAfterFee = uint96(collateralAmount - feeAmount);
+        collateralAfterFee = uint96(uint256(collateralAmount) - feeAmount);
 
         if (feeAmount > 0) {
             if (collateralToken != _weth) {
