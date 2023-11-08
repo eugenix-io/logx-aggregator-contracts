@@ -141,7 +141,7 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
 
-        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, _openAggregationFee);
+        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, args.size, args.collateralPrice, _openAggregationFee);
         
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
@@ -271,8 +271,8 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         require(proxy != address(0), "ProxyNotExist");
     }
 
-    function _handleFee(address collateralToken, uint96 collateralAmount, bool openAggregationFee) internal returns (uint96 collateralAfterFee) {
-        uint96 feeAmount = collateralAmount * _aggregationFee / 10000;
+    function _handleFee(address collateralToken, uint96 collateralAmount, uint96 size, uint96 collateralPrice, bool openAggregationFee) internal returns (uint96 collateralAfterFee) {
+        uint96 feeAmount = (size / collateralPrice) * _aggregationFee / 10000;
         collateralAfterFee = collateralAmount - feeAmount;
 
         if (collateralToken != _weth) {
