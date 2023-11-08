@@ -6,6 +6,7 @@ import "../../lib/openzeppelin-contracts/contracts/proxy/beacon/IBeacon.sol";
 
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/IERC20Upgradeable.sol";
+import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import "../../lib/openzeppelin-contracts-upgradeable/contracts/token/ERC20/utils/SafeERC20Upgradeable.sol";
 
 import "../interfaces/IMuxAggregator.sol";
@@ -141,7 +142,12 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
             proxy = createProxy(args.exchangeId, args.collateralToken, args.collateralId, args.assetId, args.isLong);
         }
 
-        uint96 collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, _openAggregationFee);
+        uint96 collateralAfterFee;
+        if(_openAggregationFee) {
+            collateralAfterFee = _handleFee(args.collateralToken, args.collateralAmount, args.size, args.collateralPrice, args.assetPrice);
+        } else {
+            collateralAfterFee = args.collateralAmount;
+        }
         
         if (args.collateralToken != _weth) {
             IERC20Upgradeable(args.collateralToken).safeTransferFrom(msg.sender, proxy, collateralAfterFee);
@@ -271,21 +277,37 @@ contract MuxProxyFactory is MuxStorage, MuxProxyBeacon, MuxProxyConfig, OwnableU
         require(proxy != address(0), "ProxyNotExist");
     }
 
-    function _handleFee(address collateralToken, uint96 collateralAmount, bool openAggregationFee) internal returns (uint96 collateralAfterFee) {
-        uint96 feeAmount = collateralAmount * _aggregationFee / 10000;
-        collateralAfterFee = collateralAmount - feeAmount;
+    function _handleFee(
+        address collateralToken,
+        uint96 collateralAmount,
+        uint96 size,
+        uint96 collateralPrice,
+        uint96 assetPrice
+    ) internal returns (uint96 collateralAfterFee) {
+        require(collateralPrice > 0, "Collateral price must be greater than 0");
+        require(assetPrice > 0, "Asset price must be greater than 0");
 
-        if (collateralToken != _weth) {
-            if (feeAmount > 0 && openAggregationFee) {
+        // Fetch the decimals of the collateral token
+        uint8 collateralDecimals = IERC20MetadataUpgradeable(collateralToken).decimals();
+
+        // Convert uint96 values to uint256 to prevent overflow during multiplication
+        uint256 feeAmount = (uint256(size) * uint256(assetPrice) * uint256(_aggregationFee) * (10 ** collateralDecimals)) /
+            (uint256(collateralPrice) * 1e18 * 10000);
+
+        require(feeAmount <= collateralAmount, "Insufficient collateral after fee");
+
+        collateralAfterFee = uint96(uint256(collateralAmount) - feeAmount);
+
+        if (feeAmount > 0) {
+            if (collateralToken != _weth) {
                 IERC20Upgradeable(collateralToken).safeTransferFrom(msg.sender, _feeCollector, feeAmount);
-            }
-        } else {
-            if (feeAmount > 0 && openAggregationFee) {
+            } else {
+                // ETH transfers use the smallest unit which is wei, no need for normalization
                 (bool success, ) = _feeCollector.call{value: feeAmount}("");
                 require(success, "Transfer failed");
             }
         }
+
         return collateralAfterFee;
     }
-
 }
